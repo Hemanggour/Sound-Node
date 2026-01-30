@@ -35,8 +35,8 @@ Sound-Node is a REST API for music management and streaming. It provides feature
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd Sound-Node-Project/BACKEND
+git clone https://github.com/Hemanggour/Sound-Node.git
+cd Sound-Node/BACKEND
 ```
 
 2. Create a virtual environment:
@@ -59,6 +59,10 @@ pip install -r requirements.txt
 - **ASGI Config**: `project/asgi.py`
 
 ### Database Setup
+
+### Note: Make sure that you have configured the Postgres database in the `BACKEND/.env`
+
+---
 
 1. Run migrations:
 ```bash
@@ -89,7 +93,7 @@ The API will be available at `http://localhost:8000`
 ## API Documentation
 
 ### Base URL
-```
+```bash
 http://localhost:8000/api/
 ```
 

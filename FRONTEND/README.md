@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# Sound Node - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive music streaming and management platform built with React 19, TypeScript, and Vite. This is the client-side application for the Sound Node Project.
 
-Currently, two official plugins are available:
+## 🚀 Teck Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework:** [React 19](https://react.dev/)
+- **Build Tool:** [Vite 7](https://vitejs.dev/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Routing:** [React Router 7](https://reactrouter.com/)
+- **API Client:** [Axios](https://axios-http.com/)
+- **Authentication:** JWT (JSON Web Tokens) with `jwt-decode`
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **User Authentication:** Secure login and registration flows.
+- **Music Library:** Browse and stream music uploaded to the platform.
+- **Audio Player:** Full-featured audio player with playback controls.
+- **Song Uploads:** Upload your own music files with metadata.
+- **User Profiles:** Manage user information and view personal library.
+- **Protected Routes:** Unauthorized access prevention for sensitive pages.
 
-## Expanding the ESLint configuration
+## 🛠️ Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js (Latest LTS recommended)
+- npm or yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Clone the repository:
+```bash
+git clone https://github.com/Hemanggour/Sound-Node.git
+cd Sound-Node/FRONTEND
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2. Install dependencies:
+```bash
+npm install
 ```
+
+### Configuration
+
+Create a `.env` file in the `FRONTEND` directory by copying the example:
+
+```bash
+cp .env.example .env
+```
+
+Ensure `VITE_API_BASE_URL` points to your backend API (default is `http://localhost:8000/api`).
+
+### Development
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`.
+
+### Production Build
+
+To create a production-ready build:
+
+```bash
+npm run build
+```
+
+## 📂 Project Structure
+
+- `src/components`: Reusable UI components (Navbar, AudioPlayer, etc.)
+- `src/pages`: Main application views (HomePage, LoginPage, etc.)
+- `src/services`: API communication logic (Auth, Music)
+- `src/context`: React context for state management.
+- `src/assets`: Static assets like images and icons.
+- `src/types`: TypeScript interfaces and types.
+
+## 📜 Scripts
+
+- `npm run dev`: Starts the Vite development server.
+- `npm run build`: Compiles TypeScript and builds the production bundle.
+- `npm run lint`: Runs ESLint for code quality checks.
+- `npm run preview`: Locally previews the production build.

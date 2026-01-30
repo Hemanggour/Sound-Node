@@ -10,24 +10,6 @@ from utils.response_wrapper import formatted_response
 # Create your views here.
 
 
-class DebugCookiesView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
-    def get(self, request, *args, **kwargs):
-        """Debug endpoint to check cookies being received"""
-        cookies = dict(request.COOKIES)
-        auth_header = request.META.get("HTTP_AUTHORIZATION", "Not set")
-        return formatted_response(
-            data={
-                "cookies": cookies,
-                "authorization_header": auth_header,
-            },
-            message="Debug info",
-            status=status.HTTP_200_OK,
-        )
-
-
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []

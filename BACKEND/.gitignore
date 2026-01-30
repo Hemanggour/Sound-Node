@@ -1,0 +1,13 @@
+venv
+.venv
+
+__pycache__
+
+.env
+docs
+*.bat
+*.exe
+
+songs/
+output/
+tmp/

@@ -1,0 +1,50 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+node_modules/
+.venv
+venv/
+env/
+
+# Local settings / env files
+*.env
+*.sqlite3
+
+# Logs / temporary files
+*.log
+tmp/
+*.pid
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Git files
+.git
+.gitignore
+
+# Collected static files (will be rebuilt)
+staticfiles/
+
+
+*.db
+*.sqlite3
+
+.env
+.env.example
+
+qa.bat
+qa.sh
+
+
+docs/
+README.md
+songs/
+tmp/
+output/

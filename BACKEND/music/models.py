@@ -61,6 +61,8 @@ class Song(models.Model):
 
     mimeType = models.CharField(max_length=50)
 
+    isUploadedToCloud = models.BooleanField(default=True)
+
     uploadedBy = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="uploadedSongs"
     )

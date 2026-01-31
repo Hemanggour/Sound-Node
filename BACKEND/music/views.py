@@ -10,6 +10,7 @@ from music.serializers import SongModelSerializer
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song
 from utils.response_wrapper import formatted_response
+from django.conf import settings
 
 # Create your views here.
 
@@ -24,7 +25,10 @@ class SongView(APIView):
     def get(self, *args, **kwargs):
         user_obj = self.request.user
 
-        song_objs = Song.objects.filter(uploadedBy=user_obj)
+        song_objs = Song.objects.filter(
+            uploadedBy=user_obj,
+            isUploadedToCloud=settings.STORAGE_BACKEND == "s3"
+        )
 
         return formatted_response(data=SongModelSerializer(song_objs, many=True).data)
 

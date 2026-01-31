@@ -74,6 +74,8 @@ def upload_song(file, user):
 
         file_size = default_storage.size(final_path)
 
+        is_uploaded_to_cloud = settings.STORAGE_BACKEND == "s3"
+
         # 8. Create DB record atomically
         with transaction.atomic():
             song = Song.objects.create(
@@ -86,6 +88,7 @@ def upload_song(file, user):
                 size=file_size,
                 mimeType=metadata["mimeType"],
                 uploadedBy=user,
+                isUploadedToCloud=is_uploaded_to_cloud,
             )
 
         return song

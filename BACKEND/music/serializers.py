@@ -18,8 +18,9 @@ class SongModelSerializer(serializers.ModelSerializer):
             "size",
             "mimeType",
             "uploadedBy",
+            "isUploadedToCloud",
         ]
-        read_only_fields = ["song_uuid"]
+        read_only_fields = ["song_uuid", "isUploadedToCloud"]
 
     def create(self, validated_data):
         return super().create(validated_data)

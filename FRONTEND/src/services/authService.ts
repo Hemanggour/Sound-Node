@@ -13,13 +13,11 @@ import type {
 export const authService = {
     async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
         const response = await api.post<ApiResponse<AuthResponse>>(ENDPOINTS.REGISTER, data);
-        console.log(response.data);
         return response.data;
     },
 
     async login(data: LoginRequest): Promise<ApiResponse<AuthResponse>> {
         const response = await api.post<ApiResponse<AuthResponse>>(ENDPOINTS.LOGIN, data);
-        console.log(response.data);
         return response.data;
     },
 

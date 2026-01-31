@@ -75,8 +75,6 @@ services:
 
     networks:
       - sound-node-network
-    env_file:
-      - ./FRONTEND/.env
     volumes:
       - frontend_build:/usr/share/nginx/html
 

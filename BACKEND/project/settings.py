@@ -251,4 +251,4 @@ elif STORAGE_BACKEND == "s3":
 
 
 # Streaming chunk size
-CHUNK_SIZE = os.getenv("CHUNK_SIZE", 8192)
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 8192))

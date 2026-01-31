@@ -50,7 +50,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the root directory (see `.env.example`).
+4. Create a `.env` file in the `BACKEND` root directory (see `.env.example`).
 
 ## Configuration
 
@@ -60,8 +60,8 @@ pip install -r requirements.txt
 
 ### Database Setup
 
-### Note: Make sure that you have configured the Postgres database in the `BACKEND/.env`
-
+### Note: Make sure that you have configured the Postgres database in the `BACKEND/.env`.
+### Also have to database created with the same name as in your `BACKEND/.env`: `DATABASE_URL` (default: `sound_node`).
 ---
 
 1. Run migrations:

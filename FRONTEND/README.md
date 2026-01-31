@@ -39,16 +39,6 @@ cd Sound-Node/FRONTEND
 npm install
 ```
 
-### Configuration
-
-Create a `.env` file in the `FRONTEND` directory by copying the example:
-
-```bash
-cp .env.example .env
-```
-
-Ensure `VITE_API_BASE_URL` points to your backend API (default is `http://localhost:8000/api`).
-
 ### Development
 
 Run the development server:

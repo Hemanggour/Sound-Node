@@ -21,11 +21,13 @@ def upload_song(file, user):
         # because mutagen requires a local file path
         if settings.STORAGE_BACKEND == "s3":
             # Download from S3 to temporary local file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.name)[1]) as tmp_file:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=os.path.splitext(file.name)[1]
+            ) as tmp_file:
                 local_temp_path = tmp_file.name
-                with default_storage.open(temp_path, 'rb') as s3_file:
+                with default_storage.open(temp_path, "rb") as s3_file:
                     tmp_file.write(s3_file.read())
-            
+
             try:
                 metadata = extract_metadata(local_temp_path)
             finally:

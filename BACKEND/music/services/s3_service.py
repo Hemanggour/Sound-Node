@@ -5,11 +5,11 @@ from django.conf import settings
 def generate_presigned_url(object_path, expires=3600):
     """
     Generate a presigned URL for accessing an S3 object.
-    
+
     Args:
         object_path: The S3 object key/path
         expires: URL expiration time in seconds (default: 1 hour)
-    
+
     Returns:
         Presigned URL string
     """
@@ -33,8 +33,8 @@ def generate_presigned_url(object_path, expires=3600):
     # Rewrite internal URL to public URL if needed
     public_endpoint = getattr(settings, "AWS_S3_PUBLIC_ENDPOINT_URL", None)
     internal_endpoint = settings.AWS_S3_ENDPOINT_URL
-    
+
     if public_endpoint and internal_endpoint and internal_endpoint in url:
         url = url.replace(internal_endpoint, public_endpoint)
-        
+
     return url

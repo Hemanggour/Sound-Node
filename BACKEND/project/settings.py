@@ -38,7 +38,9 @@ ALLOWED_HOSTS = list(
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = list(
-    os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else []
+    os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if os.getenv("CORS_ALLOWED_ORIGINS")
+    else []
 )
 
 CORS_ALLOW_CREDENTIALS = True
@@ -236,10 +238,10 @@ elif STORAGE_BACKEND == "s3":
 
     AWS_QUERYSTRING_AUTH = True
     AWS_DEFAULT_ACL = None
-    
+
     # For MinIO, we need to use path-style addressing
     AWS_S3_ADDRESSING_STYLE = "path"
-    
+
     STORAGES = {
         "default": {
             "BACKEND": "utils.storage.PublicS3Boto3Storage",

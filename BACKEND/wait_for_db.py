@@ -1,5 +1,6 @@
-import time
 import os
+import time
+
 import psycopg
 
 db_url = os.getenv("DATABASE_URL")

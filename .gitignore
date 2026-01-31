@@ -9,6 +9,7 @@ docs
 songs/
 output/
 tmp/
+media/
 
 logs
 *.log

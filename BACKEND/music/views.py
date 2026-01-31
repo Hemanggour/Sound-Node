@@ -20,8 +20,6 @@ User = get_user_model()
 class SongView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
-    # permission_classes = []
-    # authentication_classes = []
 
     def get(self, *args, **kwargs):
         user_obj = self.request.user
@@ -52,10 +50,8 @@ class SongView(APIView):
 
 
 class SongStreamView(APIView):
-    # permission_classes = [IsAuthenticated]
-    # authentication_classes = [JWTAuthentication]
-    permission_classes = []
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
 
     class StreamKwargsSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)

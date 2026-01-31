@@ -112,6 +112,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "project.wsgi.application"
+ASGI_APPLICATION = "project.asgi.application"
 
 
 # Database
@@ -220,6 +221,9 @@ if STORAGE_BACKEND == "local":
     MEDIA_ROOT = BASE_DIR / "media"
     MEDIA_URL = "/media/"
 
+    if not os.path.exists("media/tmp"):
+        os.makedirs("media/tmp")
+
 
 elif STORAGE_BACKEND == "s3":
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -244,3 +248,7 @@ elif STORAGE_BACKEND == "s3":
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
+
+
+# Streaming chunk size
+CHUNK_SIZE = os.getenv("CHUNK_SIZE", 8192)

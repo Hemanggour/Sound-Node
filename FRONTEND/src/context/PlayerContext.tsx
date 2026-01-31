@@ -30,7 +30,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             const streamUrl = musicService.getStreamUrl(song.song_uuid);
 
             try {
-                const response = await fetch(streamUrl);
+                const response = await fetch(streamUrl, { credentials: 'include' });
                 const contentType = response.headers.get('content-type');
 
                 if (contentType?.includes('application/json')) {
@@ -110,7 +110,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             {children}
             <audio
                 ref={audioRef}
-                crossOrigin="anonymous"
+                crossOrigin="use-credentials"
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onEnded={handleEnded}

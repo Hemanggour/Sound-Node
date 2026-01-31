@@ -1,5 +1,5 @@
 import api from './api';
-import { ENDPOINTS } from '../config/api';
+import { API_BASE_URL, ENDPOINTS } from '../config/api';
 import type { ApiResponse, UploadSongResponse, Song } from '../types';
 
 export const musicService = {
@@ -25,7 +25,7 @@ export const musicService = {
     },
 
     getStreamUrl(songUuid: string): string {
-        return `${ENDPOINTS.STREAM_SONG}${songUuid}/`;
+        return `${API_BASE_URL}${ENDPOINTS.STREAM_SONG}${songUuid}/`;
     },
 };
 

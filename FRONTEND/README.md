@@ -29,9 +29,8 @@ A modern, responsive music streaming and management platform built with React 19
 
 ### Installation
 
-1. Clone the repository:
+1. Navigate to `FRONTEND`:
 ```bash
-git clone https://github.com/Hemanggour/Sound-Node.git
 cd Sound-Node/FRONTEND
 ```
 

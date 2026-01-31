@@ -38,7 +38,6 @@ class SongView(APIView):
             )
 
         user_obj = self.request.user
-        # user_obj = User.objects.get(email="user@example.com")
 
         song = upload_song(file=file, user=user_obj)
 

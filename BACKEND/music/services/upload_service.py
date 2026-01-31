@@ -45,6 +45,7 @@ def upload_song(file, user):
         # 3. Resolve artist
         artist, _ = Artist.objects.get_or_create(
             name__iexact=artist_name,
+            createdBy=user,
             defaults={"name": artist_name},
         )
 
@@ -54,7 +55,11 @@ def upload_song(file, user):
             album, _ = Album.objects.get_or_create(
                 artist=artist,
                 title__iexact=album_title,
-                defaults={"title": album_title, "artist": artist},
+                createdBy=user,
+                defaults={
+                    "title": album_title,
+                    "artist": artist,
+                },
             )
 
         # 5. Generate UUID

@@ -13,7 +13,15 @@ class Artist(models.Model):
 
     name = models.CharField(max_length=255)
 
+    createdBy = models.ForeignKey(User, on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["artist_uuid"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["createdBy"]),
+        ]
 
 
 class Album(models.Model):
@@ -26,7 +34,16 @@ class Album(models.Model):
     coverImage = models.ImageField(upload_to="album_covers/", null=True, blank=True)
     releaseYear = models.IntegerField(null=True, blank=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["album_uuid"]),
+            models.Index(fields=["artist"]),
+            models.Index(fields=["title"]),
+            models.Index(fields=["createdBy"]),
+        ]
 
 
 class Song(models.Model):
@@ -39,8 +56,8 @@ class Song(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
     album = models.ForeignKey(Album, null=True, blank=True, on_delete=models.SET_NULL)
 
-    duration = models.IntegerField(help_text="Duration in seconds")
-    size = models.BigIntegerField()
+    duration = models.PositiveIntegerField(help_text="Duration in seconds")
+    size = models.PositiveBigIntegerField()
 
     mimeType = models.CharField(max_length=50)
 
@@ -48,7 +65,17 @@ class Song(models.Model):
         User, on_delete=models.CASCADE, related_name="uploadedSongs"
     )
 
+    isPublic = models.BooleanField(default=False)
+
     createdAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["song_uuid"]),
+            models.Index(fields=["artist"]),
+            models.Index(fields=["album"]),
+            models.Index(fields=["uploadedBy"]),
+        ]
 
 
 class Playlist(models.Model):
@@ -59,6 +86,12 @@ class Playlist(models.Model):
 
     createdAt = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["playlist_uuid"]),
+            models.Index(fields=["owner"]),
+        ]
+
 
 class PlaylistSong(models.Model):
     playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
@@ -67,3 +100,10 @@ class PlaylistSong(models.Model):
     order = models.IntegerField()
 
     addedAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("playlist", "song")
+        ordering = ["order"]
+        indexes = [
+            models.Index(fields=["playlist", "order"]),
+        ]

@@ -46,6 +46,7 @@ The easiest way to get the entire platform running is using Docker.
    - Copy `.env.example` to `.env` in `BACKEND/` directory.
    ```bash
    cp BACKEND/.env.example BACKEND/.env
+   ```
 
    *(Refer to `.env.example` in respective directories for required variables)*
 

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import authService from '../services/authService';
 
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function ProfilePage() {
     const { user, updateUser, logout } = useAuth();

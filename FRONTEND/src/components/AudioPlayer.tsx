@@ -1,7 +1,7 @@
 import { usePlayer } from '../context/PlayerContext';
 
 export function AudioPlayer() {
-    const { currentSong, isPlaying, progress, duration, volume, togglePlay, seek, setVolume } = usePlayer();
+    const { currentSong, isPlaying, progress, duration, volume, togglePlay, seek, setVolume, playNext, playPrevious } = usePlayer();
 
     if (!currentSong) return null;
 
@@ -37,6 +37,16 @@ export function AudioPlayer() {
             </div>
 
             <div className="player-controls">
+                <button
+                    className="player-btn"
+                    onClick={playPrevious}
+                    title="Previous"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                    </svg>
+                </button>
+
                 <button className="player-btn player-btn-main" onClick={togglePlay}>
                     {isPlaying ? (
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -48,6 +58,16 @@ export function AudioPlayer() {
                             <polygon points="5,3 19,12 5,21" />
                         </svg>
                     )}
+                </button>
+
+                <button
+                    className="player-btn"
+                    onClick={playNext}
+                    title="Next"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                    </svg>
                 </button>
 
                 <div className="player-progress">

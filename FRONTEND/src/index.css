@@ -1182,7 +1182,7 @@ a:hover {
 /* =========================================
    Responsive
    ========================================= */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   :root {
     --nav-height: 64px;
     --player-height: 72px;
@@ -1209,9 +1209,12 @@ a:hover {
     padding: 28px;
   }
 
+  /* Audio Player Responsive Styles */
   .audio-player {
-    gap: 12px;
-    padding: 0 12px;
+    gap: 0;
+    padding: 6px 16px 0 16px;
+    /* consistent padding with top space for bar */
+    justify-content: space-between;
   }
 
   .player-song-info {
@@ -1219,17 +1222,82 @@ a:hover {
     flex: 1;
     min-width: 0;
     max-width: none;
+    margin-right: 12px;
   }
 
+  /* Volume visible on tablet (768-1024), hidden on phone via separate query */
   .player-volume {
-    display: none;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
   }
 
   .player-progress {
-    max-width: 300px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    height: 4px;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+  }
+
+  .progress-bar-container {
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .progress-bar {
+    height: 100%;
+    padding-bottom: 20px;
+    border-radius: 0;
+  }
+
+  /* Hide the knob on mobile/tablet for cleaner look, or keep it small */
+  .progress-bar::-webkit-slider-thumb {
+    width: 0;
+    height: 0;
+    box-shadow: none;
+  }
+
+  .progress-bar::-moz-range-thumb {
+    width: 0;
+    height: 0;
+    border: none;
   }
 
   .player-time {
+    display: none;
+  }
+
+  /* Adjust controls to fit better */
+  .player-controls {
+    flex: 0 0 auto;
+    width: auto;
+    gap: 12px;
+  }
+
+  .player-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .player-btn-main {
+    width: 36px;
+    height: 36px;
+  }
+
+  .player-btn-main svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .player-volume {
     display: none;
   }
 }

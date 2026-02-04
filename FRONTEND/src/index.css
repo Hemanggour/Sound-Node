@@ -987,7 +987,8 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 200px;
+  width: 300px;
+  flex-shrink: 0;
 }
 
 .player-cover {
@@ -1131,8 +1132,10 @@ a:hover {
 .player-volume {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  min-width: 140px;
+  width: 300px;
+  flex-shrink: 0;
 }
 
 .player-volume svg {
@@ -1212,8 +1215,10 @@ a:hover {
   }
 
   .player-song-info {
-    min-width: auto;
-    max-width: 120px;
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    max-width: none;
   }
 
   .player-volume {
@@ -1238,6 +1243,35 @@ a:hover {
 
   .feature-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Marquee Animation */
+.scrolling-text-container {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.scrolling-text-content {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.scrolling-text-content.animate {
+  animation: marquee 15s linear infinite;
+  padding-right: 50px;
+  /* Space between loops */
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+    /* Move half way because content is doubled */
   }
 }
 
@@ -2047,6 +2081,7 @@ a:hover {
     opacity: 1;
   }
 }
+
 /* View Toggle Controls */
 .view-toggle {
   display: flex;
@@ -2099,9 +2134,10 @@ a:hover {
     flex-wrap: wrap;
     gap: 12px;
   }
-  
+
   .view-toggle {
-    margin-left: auto; /* Push to right on small screens if needed */
+    margin-left: auto;
+    /* Push to right on small screens if needed */
   }
 
   /* Force list view on very small screens if desired, or just ensure list items stack well */
@@ -2109,7 +2145,7 @@ a:hover {
     padding: 10px;
     gap: 12px;
   }
-  
+
   .song-number {
     font-size: 0.75rem;
     width: 20px;
@@ -2119,6 +2155,7 @@ a:hover {
     font-size: 0.75rem;
   }
 }
+
 /* Small Action Button for List View */
 .song-action-btn-small {
   width: 32px;
@@ -2149,35 +2186,39 @@ a:hover {
   gap: 12px;
   align-items: center;
 }
+
 .playlist-actions-group {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
-    .playlist-actions-group {
-        flex-direction: column-reverse;
-        align-items: stretch;
-    }
-    
-    .view-toggle {
-        align-self: flex-end;
-    }
+  .playlist-actions-group {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .view-toggle {
+    align-self: flex-end;
+  }
 }
+
 /* =========================================
    Mobile Navigation
    ========================================= */
 
 .hamburger-btn {
-  display: none; /* Hidden by default on desktop */
+  display: none;
+  /* Hidden by default on desktop */
   background: transparent;
   border: none;
   color: var(--text-primary);
   cursor: pointer;
   padding: 8px;
-  z-index: 1001; /* Above mobile menu */
+  z-index: 1001;
+  /* Above mobile menu */
 }
 
 .hamburger-btn svg {
@@ -2188,7 +2229,8 @@ a:hover {
 .mobile-menu {
   position: fixed;
   top: 0;
-  right: -100%; /* Hidden off-screen */
+  right: -100%;
+  /* Hidden off-screen */
   width: 280px;
   height: 100vh;
   background: rgb(20, 20, 20, 0.95);
@@ -2197,7 +2239,7 @@ a:hover {
   padding: 80px 24px 24px;
   transition: right var(--transition-base);
   z-index: 1000;
-  box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -2213,7 +2255,7 @@ a:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   z-index: 999;
   opacity: 0;
@@ -2260,14 +2302,17 @@ a:hover {
 /* Responsive adjustments for Navbar */
 @media (max-width: 768px) {
   .navbar-links {
-    display: none; /* Hide standard nav on mobile */
+    display: none;
+    /* Hide standard nav on mobile */
   }
 
   .navbar-user {
-    display: none; /* Hide standard user section on mobile */
+    display: none;
+    /* Hide standard user section on mobile */
   }
 
   .hamburger-btn {
-    display: block; /* Show hamburger on mobile */
+    display: block;
+    /* Show hamburger on mobile */
   }
 }

@@ -1,4 +1,38 @@
+import { useRef, useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
+
+function ScrollingText({ text, className }: { text: string; className?: string }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLSpanElement>(null);
+    const [shouldScroll, setShouldScroll] = useState(false);
+
+    useEffect(() => {
+        const checkScroll = () => {
+            if (containerRef.current && contentRef.current) {
+                const isOverflowing = contentRef.current.offsetWidth > containerRef.current.offsetWidth;
+                setShouldScroll(isOverflowing);
+            }
+        };
+
+        checkScroll();
+        window.addEventListener('resize', checkScroll);
+        return () => window.removeEventListener('resize', checkScroll);
+    }, [text]);
+
+    return (
+        <div ref={containerRef} className={`scrolling-text-container ${className || ''}`} title={text}>
+            <div className={`scrolling-text-content ${shouldScroll ? 'animate' : ''}`}>
+                <span ref={contentRef}>{text}</span>
+                {shouldScroll && (
+                    <>
+                        <span style={{ display: 'inline-block', width: '50px' }}></span>
+                        <span>{text}</span>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export function AudioPlayer() {
     const { currentSong, isPlaying, progress, duration, volume, togglePlay, seek, setVolume, playNext, playPrevious } = usePlayer();
@@ -30,9 +64,9 @@ export function AudioPlayer() {
                         <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                     </svg>
                 </div>
-                <div className="player-details">
-                    <h4 className="player-title">{currentSong.title}</h4>
-                    <p className="player-artist">{currentSong.artist_name || 'Unknown Artist'}</p>
+                <div className="player-details" style={{ minWidth: 0, flex: 1 }}>
+                    <ScrollingText text={currentSong.title} className="player-title" />
+                    <ScrollingText text={currentSong.artist_name || 'Unknown Artist'} className="player-artist" />
                 </div>
             </div>
 

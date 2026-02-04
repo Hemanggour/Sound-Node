@@ -45,7 +45,7 @@ def upload_song(file, user):
         # 3. Resolve artist
         artist, _ = Artist.objects.get_or_create(
             name__iexact=artist_name,
-            createdBy=user,
+            created_by=user,
             defaults={"name": artist_name},
         )
 
@@ -55,7 +55,7 @@ def upload_song(file, user):
             album, _ = Album.objects.get_or_create(
                 artist=artist,
                 title__iexact=album_title,
-                createdBy=user,
+                created_by=user,
                 defaults={
                     "title": album_title,
                     "artist": artist,
@@ -86,9 +86,9 @@ def upload_song(file, user):
                 album=album,
                 duration=metadata["duration"],
                 size=file_size,
-                mimeType=metadata["mimeType"],
-                uploadedBy=user,
-                isUploadedToCloud=is_uploaded_to_cloud,
+                mime_type=metadata["mime_type"],
+                uploaded_by=user,
+                is_uploaded_to_cloud=is_uploaded_to_cloud,
             )
 
         return song

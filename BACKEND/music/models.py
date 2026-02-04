@@ -13,14 +13,14 @@ class Artist(models.Model):
 
     name = models.CharField(max_length=255)
 
-    createdBy = models.ForeignKey(User, on_delete=models.CASCADE)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
             models.Index(fields=["artist_uuid"]),
             models.Index(fields=["name"]),
-            models.Index(fields=["createdBy"]),
+            models.Index(fields=["created_by"]),
         ]
 
 
@@ -31,18 +31,18 @@ class Album(models.Model):
 
     title = models.CharField(max_length=255)
 
-    coverImage = models.ImageField(upload_to="album_covers/", null=True, blank=True)
-    releaseYear = models.IntegerField(null=True, blank=True)
+    cover_image = models.ImageField(upload_to="album_covers/", null=True, blank=True)
+    release_year = models.IntegerField(null=True, blank=True)
 
-    createdBy = models.ForeignKey(User, on_delete=models.CASCADE)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
             models.Index(fields=["album_uuid"]),
             models.Index(fields=["artist"]),
             models.Index(fields=["title"]),
-            models.Index(fields=["createdBy"]),
+            models.Index(fields=["created_by"]),
         ]
 
 
@@ -59,24 +59,24 @@ class Song(models.Model):
     duration = models.PositiveIntegerField(help_text="Duration in seconds")
     size = models.PositiveBigIntegerField()
 
-    mimeType = models.CharField(max_length=50)
+    mime_type = models.CharField(max_length=50)
 
-    isUploadedToCloud = models.BooleanField(default=True)
+    is_uploaded_to_cloud = models.BooleanField(default=True)
 
-    uploadedBy = models.ForeignKey(
+    uploaded_by = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="uploadedSongs"
     )
 
-    isPublic = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=False)
 
-    createdAt = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
             models.Index(fields=["song_uuid"]),
             models.Index(fields=["artist"]),
             models.Index(fields=["album"]),
-            models.Index(fields=["uploadedBy"]),
+            models.Index(fields=["uploaded_by"]),
         ]
 
 
@@ -86,7 +86,7 @@ class Playlist(models.Model):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    createdAt = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
@@ -103,7 +103,7 @@ class PlaylistSong(models.Model):
 
     order = models.IntegerField()
 
-    addedAt = models.DateTimeField(auto_now_add=True)
+    added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("playlist", "song")

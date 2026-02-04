@@ -31,7 +31,7 @@ class SongView(APIView):
         user_obj = self.request.user
 
         song_objs = Song.objects.filter(
-            uploadedBy=user_obj, isUploadedToCloud=settings.STORAGE_BACKEND == "s3"
+            uploaded_by=user_obj, is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3"
         )
 
         return formatted_response(data=SongModelSerializer(song_objs, many=True).data)
@@ -75,7 +75,7 @@ class SongStreamView(APIView):
         return stream_file(
             request=self.request,
             file_path=song.file.name,
-            content_type=song.mimeType,
+            content_type=song.mime_type,
         )
 
 

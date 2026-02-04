@@ -249,7 +249,7 @@ Base Path: `/api/`
         "artist": "...",
         "duration": 180,
         "size": 5000000,
-        "mimeType": "audio/mpeg"
+        "mime_type": "audio/mpeg"
       }
     ],
     "message": null,
@@ -274,7 +274,7 @@ Base Path: `/api/`
       "album": null,
       "duration": 210,
       "size": 4200000,
-      "mimeType": "audio/mpeg"
+      "mime_type": "audio/mpeg"
     },
     "message": "Song uploaded successfully",
     "status": 201
@@ -340,7 +340,7 @@ All API responses follow a consistent wrapped format:
 - `file`: Path to the stored audio file.
 - `duration`: In seconds.
 - `size`: In bytes.
-- `mimeType`: The file's MIME type (e.g., `audio/mpeg`).
+- `mime_type`: The file's MIME type (e.g., `audio/mpeg`).
 
 ---
 

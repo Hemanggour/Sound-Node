@@ -16,10 +16,10 @@ class SongModelSerializer(serializers.ModelSerializer):
             "album",
             "duration",
             "size",
-            "mimeType",
-            "uploadedBy",
+            "mime_type",
+            "uploaded_by",
         ]
-        read_only_fields = ["song_uuid", "isUploadedToCloud"]
+        read_only_fields = ["song_uuid", "is_uploaded_to_cloud"]
 
     def create(self, validated_data):
         return super().create(validated_data)
@@ -32,9 +32,9 @@ class PlaylistSongModelSerializer(serializers.ModelSerializer):
             "playlist_song_uuid",
             "playlist",
             "song",
-            "addedAt",
+            "added_at",
         ]
-        read_only_fields = ["playlist_song_uuid", "addedAt"]
+        read_only_fields = ["playlist_song_uuid", "added_at"]
 
     def create(self, validated_data):
         return super().create(validated_data)
@@ -48,10 +48,10 @@ class PlaylistModelSerializer(serializers.ModelSerializer):
         fields = [
             "playlist_uuid",
             "name",
-            "createdAt",
+            "created_at",
             "songs",
         ]
-        read_only_fields = ["playlist_uuid", "createdAt", "songs"]
+        read_only_fields = ["playlist_uuid", "created_at", "songs"]
 
     def create(self, validated_data):
         return super().create(validated_data)

@@ -51,8 +51,8 @@ export interface Song {
     album?: string;
     duration?: number;
     size?: number;
-    mimeType?: string;
-    uploadedBy?: string;
+    mime_type?: string;
+    uploaded_by?: string;
 }
 
 export interface UploadSongResponse {

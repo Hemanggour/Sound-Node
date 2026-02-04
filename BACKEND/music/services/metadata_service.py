@@ -16,6 +16,6 @@ def extract_metadata(file_path):
     metadata["album"] = audio.get("album", [None])[0]
 
     metadata["duration"] = int(audio.info.length)
-    metadata["mimeType"] = audio.mime[0] if audio.mime else None
+    metadata["mime_type"] = audio.mime[0] if audio.mime else None
 
     return metadata

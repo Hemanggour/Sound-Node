@@ -96,6 +96,8 @@ class Playlist(models.Model):
 
 
 class PlaylistSong(models.Model):
+    playlist_song_uuid = models.UUIDField(default=uuid.uuid4, unique=True)
+
     playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
 
@@ -107,5 +109,6 @@ class PlaylistSong(models.Model):
         unique_together = ("playlist", "song")
         ordering = ["order"]
         indexes = [
+            models.Index(fields=["playlist_song_uuid"]),
             models.Index(fields=["playlist", "order"]),
         ]

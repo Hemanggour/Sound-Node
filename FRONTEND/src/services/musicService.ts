@@ -4,7 +4,7 @@ import type { ApiResponse, UploadSongResponse, Song } from '../types';
 
 export const musicService = {
     async getSongs(): Promise<ApiResponse<Song[]>> {
-        const response = await api.get<ApiResponse<Song[]>>(ENDPOINTS.GET_SONGS);
+        const response = await api.get<ApiResponse<Song[]>>(ENDPOINTS.GET_SONGS, { withCredentials: true });
         return response.data;
     },
 
@@ -19,6 +19,7 @@ export const musicService = {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                withCredentials: true,
             }
         );
         return response.data;

@@ -23,22 +23,26 @@ export const authService = {
 
     async refreshToken(): Promise<{ access: string }> {
         // Backend reads refresh token from cookie and sets new access token cookie
-        const response = await api.post(ENDPOINTS.refresh, {});
+        const response = await api.post(ENDPOINTS.refresh, {}, { withCredentials: true });
         return response.data;
     },
 
     async getProfile(): Promise<ApiResponse<User>> {
-        const response = await api.get<ApiResponse<User>>(ENDPOINTS.PROFILE);
+        const response = await api.get<ApiResponse<User>>(ENDPOINTS.PROFILE, { withCredentials: true });
         return response.data;
     },
 
     async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
-        const response = await api.patch<ApiResponse<User>>(ENDPOINTS.PROFILE, data);
+        const response = await api.patch<ApiResponse<User>>(ENDPOINTS.PROFILE, data, { withCredentials: true });
         return response.data;
     },
 
     async changePassword(data: ChangePasswordRequest): Promise<ApiResponse<{ success: string }>> {
-        const response = await api.post<ApiResponse<{ success: string }>>(ENDPOINTS.CHANGE_PASSWORD, data);
+        const response = await api.post<ApiResponse<{ success: string }>>(
+            ENDPOINTS.CHANGE_PASSWORD,
+            data,
+            { withCredentials: true }
+        );
         return response.data;
     },
 };

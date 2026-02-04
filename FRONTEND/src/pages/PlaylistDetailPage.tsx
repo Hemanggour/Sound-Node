@@ -15,7 +15,14 @@ export function PlaylistDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [showEditModal, setShowEditModal] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        const savedMode = localStorage.getItem('playlistViewMode');
+        return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'list';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('playlistViewMode', viewMode);
+    }, [viewMode]);
 
     useEffect(() => {
         if (playlistUuid) {

@@ -2,8 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import authService from '../services/authService';
 
+import { Link, useNavigate } from 'react-router-dom';
+
 export function ProfilePage() {
-    const { user, updateUser } = useAuth();
+    const { user, updateUser, logout } = useAuth();
+    const navigate = useNavigate();
     const [username, setUsername] = useState(user?.username || '');
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [profileSuccess, setProfileSuccess] = useState('');
@@ -196,6 +199,24 @@ export function ProfilePage() {
                             )}
                         </button>
                     </form>
+                </section>
+                <section className="profile-section">
+                    <h3>Account Actions</h3>
+                    <button
+                        onClick={() => {
+                            logout();
+                            navigate('/login');
+                        }}
+                        className="btn btn-danger"
+                        style={{ width: '100%', justifyContent: 'center' }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16,17 21,12 16,7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Logout
+                    </button>
                 </section>
             </div>
         </div>

@@ -10,7 +10,14 @@ export function HomePage() {
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        const savedMode = localStorage.getItem('homeViewMode');
+        return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'grid';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('homeViewMode', viewMode);
+    }, [viewMode]);
 
     useEffect(() => {
         const fetchSongs = async () => {

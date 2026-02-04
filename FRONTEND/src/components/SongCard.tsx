@@ -5,9 +5,10 @@ import { AddToPlaylistModal } from './AddToPlaylistModal';
 
 interface SongCardProps {
     song: Song;
+    viewMode?: 'grid' | 'list';
 }
 
-export function SongCard({ song }: SongCardProps) {
+export function SongCard({ song, viewMode = 'grid' }: SongCardProps) {
     const { playSong, currentSong, isPlaying, togglePlay } = usePlayer();
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
@@ -27,6 +28,47 @@ export function SongCard({ song }: SongCardProps) {
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    if (viewMode === 'list') {
+        return (
+            <>
+                <div className={`song-list-item ${isCurrentSong ? 'active' : ''}`}>
+                    <button className="song-play-btn-small" onClick={handlePlay}>
+                        {isCurrentSong && isPlaying ? (
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16" />
+                                <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                        )}
+                    </button>
+                    <div className="song-info-list">
+                        <h3 className="song-title">{song.title}</h3>
+                        <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
+                    </div>
+                    <div className="song-duration">{formatDuration(song.duration)}</div>
+                    <button
+                        className="song-action-btn-small"
+                        onClick={() => setShowPlaylistModal(true)}
+                        title="Add to playlist"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                    </button>
+                </div>
+                <AddToPlaylistModal
+                    isOpen={showPlaylistModal}
+                    onClose={() => setShowPlaylistModal(false)}
+                    song={song}
+                />
+            </>
+        );
+    }
 
     return (
         <>

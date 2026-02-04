@@ -2047,3 +2047,122 @@ a:hover {
     opacity: 1;
   }
 }
+/* View Toggle Controls */
+.view-toggle {
+  display: flex;
+  background: var(--bg-elevated);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  gap: 4px;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.view-toggle-btn.active {
+  color: var(--accent-primary);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.view-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Song List View (Reuse existing song-list-item or enhance it) */
+.song-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .section-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .view-toggle {
+    margin-left: auto; /* Push to right on small screens if needed */
+  }
+
+  /* Force list view on very small screens if desired, or just ensure list items stack well */
+  .song-list-item {
+    padding: 10px;
+    gap: 12px;
+  }
+  
+  .song-number {
+    font-size: 0.75rem;
+    width: 20px;
+  }
+
+  .song-duration {
+    font-size: 0.75rem;
+  }
+}
+/* Small Action Button for List View */
+.song-action-btn-small {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.song-action-btn-small:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.song-action-btn-small svg {
+  width: 18px;
+  height: 18px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.playlist-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .playlist-actions-group {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+    
+    .view-toggle {
+        align-self: flex-end;
+    }
+}

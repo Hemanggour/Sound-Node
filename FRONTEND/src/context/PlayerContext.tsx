@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import type { Song } from '../types';
 import musicService from '../services/musicService';
 
@@ -29,17 +29,92 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-    const [currentSong, setCurrentSong] = useState<Song | null>(null);
+    const [currentSong, setCurrentSong] = useState<Song | null>(() => {
+        const saved = localStorage.getItem('player_song');
+        return saved ? JSON.parse(saved) : null;
+    });
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [volume, setVolumeState] = useState(1);
-    const [currentPlaylist, setCurrentPlaylist] = useState<Song[]>([]);
-    const [originalPlaylist, setOriginalPlaylist] = useState<Song[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(-1);
-    const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
-    const [isShuffle, setIsShuffle] = useState(false);
+    const [volume, setVolumeState] = useState(() => {
+        const saved = localStorage.getItem('player_volume');
+        return saved ? Number(saved) : 1;
+    });
+    const [currentPlaylist, setCurrentPlaylist] = useState<Song[]>(() => {
+        const saved = localStorage.getItem('player_queue');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [originalPlaylist, setOriginalPlaylist] = useState<Song[]>(() => {
+        const saved = localStorage.getItem('player_original_queue');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [currentIndex, setCurrentIndex] = useState(() => {
+        const saved = localStorage.getItem('player_index');
+        return saved ? Number(saved) : -1;
+    });
+    const [repeatMode, setRepeatMode] = useState<RepeatMode>(() => {
+        const saved = localStorage.getItem('player_repeat');
+        return (saved === 'one' || saved === 'all') ? saved : 'off';
+    });
+    const [isShuffle, setIsShuffle] = useState(() => {
+        const saved = localStorage.getItem('player_shuffle');
+        return saved === 'true';
+    });
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Persist Settings
+    useEffect(() => {
+        localStorage.setItem('player_volume', volume.toString());
+        localStorage.setItem('player_repeat', repeatMode);
+        localStorage.setItem('player_shuffle', isShuffle.toString());
+    }, [volume, repeatMode, isShuffle]);
+
+    // Persist Playback State
+    useEffect(() => {
+        if (currentSong) {
+            localStorage.setItem('player_song', JSON.stringify(currentSong));
+        } else {
+            localStorage.removeItem('player_song');
+        }
+        localStorage.setItem('player_queue', JSON.stringify(currentPlaylist));
+        localStorage.setItem('player_original_queue', JSON.stringify(originalPlaylist));
+        localStorage.setItem('player_index', currentIndex.toString());
+    }, [currentSong, currentPlaylist, originalPlaylist, currentIndex]);
+
+
+
+    // Restore Audio Source on Mount
+    useEffect(() => {
+        if (currentSong && audioRef.current && !audioRef.current.src) {
+            const streamUrl = musicService.getStreamUrl(currentSong.song_uuid);
+
+            // We need to fetch the JSON url properly if needed, similar to playSong logic
+            // But for simplicity, we can reuse playSong logic OR just refactor playSong to distinct "load" and "play".
+            // Refactoring is safer.
+            // For now, let's just re-run the logic but NOT play.
+
+            const loadSource = async () => {
+                try {
+                    const response = await fetch(streamUrl, { credentials: 'include' });
+                    const contentType = response.headers.get('content-type');
+                    let src = streamUrl;
+
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
+                        src = data.url;
+                    }
+
+                    if (audioRef.current) {
+                        audioRef.current.src = src;
+                        audioRef.current.volume = volume;
+                    }
+                } catch (error) {
+                    console.error("Error restoring audio:", error);
+                }
+            };
+            loadSource();
+        }
+    }, []); // Run once on mount
 
     const playSong = async (song: Song) => {
         if (audioRef.current) {

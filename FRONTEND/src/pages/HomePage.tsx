@@ -10,6 +10,14 @@ export function HomePage() {
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        const savedMode = localStorage.getItem('homeViewMode');
+        return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'grid';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('homeViewMode', viewMode);
+    }, [viewMode]);
 
     useEffect(() => {
         const fetchSongs = async () => {
@@ -30,7 +38,6 @@ export function HomePage() {
 
         fetchSongs();
     }, []);
-
     return (
         <div className="page home-page">
             <header className="page-header">
@@ -45,13 +52,43 @@ export function HomePage() {
             <section className="content-section">
                 <div className="section-header">
                     <h2>Your Library</h2>
-                    <Link to="/upload" className="btn btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Upload Music
-                    </Link>
+                    <div className="header-actions">
+                        <div className="view-toggle">
+                            <button
+                                className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                onClick={() => setViewMode('grid')}
+                                title="Grid View"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" />
+                                    <rect x="14" y="3" width="7" height="7" />
+                                    <rect x="14" y="14" width="7" height="7" />
+                                    <rect x="3" y="14" width="7" height="7" />
+                                </svg>
+                            </button>
+                            <button
+                                className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                onClick={() => setViewMode('list')}
+                                title="List View"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="8" y1="6" x2="21" y2="6" />
+                                    <line x1="8" y1="12" x2="21" y2="12" />
+                                    <line x1="8" y1="18" x2="21" y2="18" />
+                                    <line x1="3" y1="6" x2="3.01" y2="6" />
+                                    <line x1="3" y1="12" x2="3.01" y2="12" />
+                                    <line x1="3" y1="18" x2="3.01" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <Link to="/upload" className="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Upload Music
+                        </Link>
+                    </div>
                 </div>
 
                 {isLoading ? (
@@ -77,9 +114,9 @@ export function HomePage() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="song-grid">
+                    <div className={viewMode === 'grid' ? "song-grid" : "song-list-container"}>
                         {songs.map((song) => (
-                            <SongCard key={song.song_uuid} song={song} />
+                            <SongCard key={song.song_uuid} song={song} viewMode={viewMode} />
                         ))}
                     </div>
                 )}

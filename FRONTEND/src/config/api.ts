@@ -18,4 +18,13 @@ export const ENDPOINTS = {
   GET_SONGS: '/songs/',
   UPLOAD_SONG: '/song/upload/',
   STREAM_SONG: '/song/stream/',
+
+  // Playlists
+  GET_PLAYLISTS: '/playlists/',
+  CREATE_PLAYLIST: '/playlists/',
+  UPDATE_PLAYLIST: '/playlist/',
+  DELETE_PLAYLIST: '/playlist/',
+  GET_PLAYLIST_SONGS: '/playlist/song/add/',
+  ADD_SONG_TO_PLAYLIST: '/playlist/song/add/',
+  REMOVE_SONG_FROM_PLAYLIST: '/playlist/song/remove/',
 };

@@ -9,5 +9,5 @@ urlpatterns = [
     path("playlists/", PlaylistView.as_view()),
     path("playlist/<uuid:playlist_uuid>/", PlaylistView.as_view()),
     path("playlist/song/add/<uuid:playlist_uuid>/", PlaylistSongView.as_view()),
-    path("playlist/song/remove/<uuid:playlist_song_uuid>/", PlaylistSongView.as_view()),
+    path("playlist/song/remove/<uuid:playlist_uuid>/", PlaylistSongView.as_view()),
 ]

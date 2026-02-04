@@ -9,6 +9,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { UploadPage } from './pages/UploadPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { PlaylistsPage } from './pages/PlaylistsPage';
+import { PlaylistDetailPage } from './pages/PlaylistDetailPage';
 
 function App() {
   return (
@@ -41,6 +43,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/playlists"
+                element={
+                  <ProtectedRoute>
+                    <PlaylistsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/playlist/:playlistUuid"
+                element={
+                  <ProtectedRoute>
+                    <PlaylistDetailPage />
                   </ProtectedRoute>
                 }
               />

@@ -8,7 +8,12 @@ interface PlayerContextType {
     progress: number;
     duration: number;
     volume: number;
+    currentPlaylist: Song[];
+    currentIndex: number;
     playSong: (song: Song) => void;
+    playPlaylist: (songs: Song[], startIndex?: number) => void;
+    playNext: () => void;
+    playPrevious: () => void;
     togglePlay: () => void;
     seek: (time: number) => void;
     setVolume: (volume: number) => void;
@@ -23,6 +28,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolumeState] = useState(1);
+    const [currentPlaylist, setCurrentPlaylist] = useState<Song[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(-1);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const playSong = async (song: Song) => {
@@ -90,6 +97,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const handleEnded = () => {
         setIsPlaying(false);
         setProgress(0);
+        // Auto-play next song in playlist
+        if (currentPlaylist.length > 0 && currentIndex < currentPlaylist.length - 1) {
+            playNext();
+        }
+    };
+
+    const playPlaylist = (songs: Song[], startIndex: number = 0) => {
+        setCurrentPlaylist(songs);
+        setCurrentIndex(startIndex);
+        if (songs.length > startIndex) {
+            playSong(songs[startIndex]);
+        }
+    };
+
+    const playNext = () => {
+        if (currentPlaylist.length > 0 && currentIndex < currentPlaylist.length - 1) {
+            const nextIndex = currentIndex + 1;
+            setCurrentIndex(nextIndex);
+            playSong(currentPlaylist[nextIndex]);
+        }
+    };
+
+    const playPrevious = () => {
+        if (currentPlaylist.length > 0 && currentIndex > 0) {
+            const prevIndex = currentIndex - 1;
+            setCurrentIndex(prevIndex);
+            playSong(currentPlaylist[prevIndex]);
+        }
     };
 
     return (
@@ -100,7 +135,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 progress,
                 duration,
                 volume,
+                currentPlaylist,
+                currentIndex,
                 playSong,
+                playPlaylist,
+                playNext,
+                playPrevious,
                 togglePlay,
                 seek,
                 setVolume,

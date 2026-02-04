@@ -61,6 +61,34 @@ export interface UploadSongResponse {
     title: string;
 }
 
+// Playlist types
+export interface PlaylistSong {
+    playlist_song_uuid: string;
+    playlist: string;
+    song: Song;
+    added_at: string;
+    order?: number;
+}
+
+export interface Playlist {
+    playlist_uuid: string;
+    name: string;
+    created_at: string;
+    songs: PlaylistSong[];
+}
+
+export interface CreatePlaylistRequest {
+    name: string;
+}
+
+export interface UpdatePlaylistRequest {
+    name: string;
+}
+
+export interface AddSongToPlaylistRequest {
+    song_uuid: string;
+}
+
 // Player state
 export interface PlayerState {
     currentSong: Song | null;
@@ -68,4 +96,6 @@ export interface PlayerState {
     progress: number;
     duration: number;
     volume: number;
+    currentPlaylist?: Song[];
+    currentIndex?: number;
 }

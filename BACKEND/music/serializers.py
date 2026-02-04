@@ -27,7 +27,7 @@ class SongModelSerializer(serializers.ModelSerializer):
 
 class PlaylistSongModelSerializer(serializers.ModelSerializer):
     song = SongModelSerializer(read_only=True)
-    
+
     class Meta:
         model = PlaylistSong
         fields = [

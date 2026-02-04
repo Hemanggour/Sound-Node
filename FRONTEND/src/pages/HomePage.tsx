@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { SongCard } from '../components/SongCard';
 import musicService from '../services/musicService';
@@ -7,6 +7,7 @@ import type { Song } from '../types';
 
 export function HomePage() {
     const { user } = useAuth();
+    const location = useLocation();
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
@@ -14,6 +15,11 @@ export function HomePage() {
         const savedMode = localStorage.getItem('homeViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'grid';
     });
+
+    // Check navigation state for welcome message
+    const state = location.state as { newlyLoggedIn?: boolean; newlyRegistered?: boolean } | null;
+    const showWelcome = state?.newlyLoggedIn || state?.newlyRegistered;
+    const isNewUser = state?.newlyRegistered;
 
     useEffect(() => {
         localStorage.setItem('homeViewMode', viewMode);
@@ -40,14 +46,16 @@ export function HomePage() {
     }, []);
     return (
         <div className="page home-page">
-            <header className="page-header">
-                <div className="welcome-section">
-                    <h1>
-                        Welcome back, <span className="gradient-text">{user?.username}</span>
-                    </h1>
-                    <p>Ready to discover new music?</p>
-                </div>
-            </header>
+            {showWelcome && (
+                <header className="page-header">
+                    <div className="welcome-section">
+                        <h1>
+                            {isNewUser ? 'Welcome' : 'Welcome back'}, <span className="gradient-text">{user?.username}</span>
+                        </h1>
+                        <p>{isNewUser ? 'Thanks for joining us!' : 'Ready to discover new music?'}</p>
+                    </div>
+                </header>
+            )}
 
             <section className="content-section">
                 <div className="section-header">

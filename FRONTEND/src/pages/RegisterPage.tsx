@@ -30,7 +30,7 @@ export function RegisterPage() {
 
         try {
             await register({ email, username, password });
-            navigate('/');
+            navigate('/', { state: { newlyRegistered: true } });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Registration failed');
         } finally {

@@ -8,7 +8,7 @@ import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();
     const navigate = useNavigate();
-    const { playSong, currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
+    const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
 
     const [playlist, setPlaylist] = useState<Playlist | null>(null);
     const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);

@@ -6,9 +6,10 @@ import { AddToPlaylistModal } from './AddToPlaylistModal';
 interface SongCardProps {
     song: Song;
     viewMode?: 'grid' | 'list';
+    onPlay?: () => void;
 }
 
-export function SongCard({ song, viewMode = 'grid' }: SongCardProps) {
+export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
     const { playSong, currentSong, isPlaying, togglePlay } = usePlayer();
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
@@ -17,6 +18,8 @@ export function SongCard({ song, viewMode = 'grid' }: SongCardProps) {
     const handlePlay = () => {
         if (isCurrentSong) {
             togglePlay();
+        } else if (onPlay) {
+            onPlay();
         } else {
             playSong(song);
         }

@@ -93,12 +93,14 @@ export function PlaylistDetailPage() {
         }
     };
 
-    const handlePlaySong = (playlistSong: PlaylistSong) => {
+    const handlePlaySong = (playlistSong: PlaylistSong, index: number) => {
         const isCurrentSong = currentSong?.song_uuid === playlistSong.song.song_uuid;
         if (isCurrentSong) {
             togglePlay();
         } else {
-            playSong(playlistSong.song);
+            // Map all playlist songs to simple Song objects for the player
+            const songs = playlistSongs.map(ps => ps.song);
+            playPlaylist(songs, index);
         }
     };
 
@@ -255,7 +257,7 @@ export function PlaylistDetailPage() {
                                             <svg viewBox="0 0 24 24" fill="currentColor">
                                                 <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                                             </svg>
-                                            <button className="song-play-btn" onClick={() => handlePlaySong(playlistSong)}>
+                                            <button className="song-play-btn" onClick={() => handlePlaySong(playlistSong, index)}>
                                                 {isCurrentSong && isPlaying ? (
                                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                                         <rect x="6" y="4" width="4" height="16" />
@@ -296,7 +298,7 @@ export function PlaylistDetailPage() {
                                     className={`song-list-item ${isCurrentSong ? 'active' : ''}`}
                                 >
                                     <div className="song-number">{index + 1}</div>
-                                    <button className="song-play-btn-small" onClick={() => handlePlaySong(playlistSong)}>
+                                    <button className="song-play-btn-small" onClick={() => handlePlaySong(playlistSong, index)}>
                                         {isCurrentSong && isPlaying ? (
                                             <svg viewBox="0 0 24 24" fill="currentColor">
                                                 <rect x="6" y="4" width="4" height="16" />

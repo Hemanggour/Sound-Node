@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePlayer } from '../context/PlayerContext';
 import { SongCard } from '../components/SongCard';
 import musicService from '../services/musicService';
 import type { Song } from '../types';
 
 export function HomePage() {
     const { user } = useAuth();
+    const { playPlaylist } = usePlayer();
     const location = useLocation();
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -123,8 +125,13 @@ export function HomePage() {
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list-container"}>
-                        {songs.map((song) => (
-                            <SongCard key={song.song_uuid} song={song} viewMode={viewMode} />
+                        {songs.map((song, index) => (
+                            <SongCard
+                                key={song.song_uuid}
+                                song={song}
+                                viewMode={viewMode}
+                                onPlay={() => playPlaylist(songs, index)}
+                            />
                         ))}
                     </div>
                 )}

@@ -30,11 +30,11 @@ export function LoginPage() {
             <div className="auth-container">
                 <div className="auth-header">
                     <div className="auth-logo">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                            <circle cx="12" cy="12" r="3" fill="currentColor" />
-                            <path d="M12 2C12 2 12 8 12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
+                        <img
+                            src="/sound-node-logo.svg"
+                            alt="Sound-Node"
+                            style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+                        />
                     </div>
                     <h1>Welcome Back</h1>
                     <p>Sign in to continue to Sound-Node</p>

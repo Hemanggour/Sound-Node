@@ -39,8 +39,14 @@ The easiest way to get the entire platform running is using Docker.
    ```
 
 2. **Configure Environment**:
-   - Create a `.env` file in the root directory.
-   - Create a `.env` file in `BACKEND/`.
+   - Copy `.env.example` to `.env` in the root directory.
+   ```bash
+   cp .env.example .env
+   ```
+   - Copy `.env.example` to `.env` in `BACKEND/` directory.
+   ```bash
+   cp BACKEND/.env.example BACKEND/.env
+
    *(Refer to `.env.example` in respective directories for required variables)*
 
 3. **Launch the application**:

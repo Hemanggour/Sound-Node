@@ -53,6 +53,20 @@ export function Navbar() {
                     </svg>
                     Playlists
                 </Link>
+                <Link to="/artists" className={`nav-link ${isActive('/artists')}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="7" r="4" />
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    </svg>
+                    Artists
+                </Link>
+                <Link to="/albums" className={`nav-link ${isActive('/albums')}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Albums
+                </Link>
                 <Link to="/upload" className={`nav-link ${isActive('/upload')}`}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -121,6 +135,20 @@ export function Navbar() {
                         <rect x="3" y="14" width="7" height="7" />
                     </svg>
                     Playlists
+                </Link>
+                <Link to="/artists" className={`mobile-nav-link ${isActive('/artists')}`} onClick={handleLinkClick}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="7" r="4" />
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    </svg>
+                    Artists
+                </Link>
+                <Link to="/albums" className={`mobile-nav-link ${isActive('/albums')}`} onClick={handleLinkClick}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Albums
                 </Link>
                 <Link to="/upload" className={`mobile-nav-link ${isActive('/upload')}`} onClick={handleLinkClick}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

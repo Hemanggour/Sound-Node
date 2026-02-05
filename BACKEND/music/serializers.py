@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from music.models import Playlist, PlaylistSong, Song
+from music.models import Playlist, PlaylistSong, Song, Artist, Album
 
 
 class SongModelSerializer(serializers.ModelSerializer):
@@ -53,12 +53,111 @@ class PlaylistModelSerializer(serializers.ModelSerializer):
             "created_at",
             "songs",
         ]
-        read_only_fields = ["playlist_uuid", "created_at", "songs"]
+        read_only_fields = ["playlist_uuid", "created_at"]
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+    
+    def get_songs(self, obj):
+        return PlaylistSongModelSerializer(
+            PlaylistSong.objects.filter(playlist=obj), many=True
+        ).data
+
+
+class ArtistModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Artist
+        fields = [
+            "artist_uuid",
+            "name",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = ["artist_uuid", "created_by", "created_at"]
 
     def create(self, validated_data):
         return super().create(validated_data)
 
-    def get_songs(self, playlist_obj):
-        return PlaylistSongModelSerializer(
-            PlaylistSong.objects.filter(playlist=playlist_obj), many=True
+
+class ArtistSongModelSerializer(serializers.ModelSerializer):
+    songs = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Artist
+        fields = [
+            "artist_uuid",
+            "name",
+            "created_by",
+            "created_at",
+            "songs",
+        ]
+
+        read_only_fields = ["artist_uuid", "created_by", "created_at"]
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+
+    def get_songs(self, obj):
+        return SongModelSerializer(
+            Song.objects.filter(artist=obj), many=True
+        ).data
+
+
+class AlbumModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Album
+        fields = [
+            "album_uuid",
+            "artist",
+            "title",
+            "cover_image",
+            "release_year",
+            "created_by",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "album_uuid",
+            "artist",
+            "cover_image",
+            "release_year",
+            "created_by",
+            "created_at",
+        ]
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+
+
+class AlbumSongModelSerializer(serializers.ModelSerializer):
+    songs = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Album
+        fields = [
+            "album_uuid",
+            "artist",
+            "title",
+            "cover_image",
+            "release_year",
+            "created_by",
+            "created_at",
+            "songs",
+        ]
+
+        read_only_fields = [
+            "album_uuid",
+            "artist",
+            "cover_image",
+            "release_year",
+            "created_by",
+            "created_at",
+        ]
+
+    def create(self, validated_data):
+        return super().create(validated_data)
+        
+    def get_songs(self, obj):
+        return SongModelSerializer(
+            Song.objects.filter(album=obj), many=True
         ).data

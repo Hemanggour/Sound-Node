@@ -27,4 +27,12 @@ export const ENDPOINTS = {
   GET_PLAYLIST_SONGS: '/playlist/song/add/',
   ADD_SONG_TO_PLAYLIST: '/playlist/song/add/',
   REMOVE_SONG_FROM_PLAYLIST: '/playlist/song/remove/',
+
+  // Artists
+  GET_ARTISTS: '/artists/',
+  GET_ARTIST: '/artist/',
+
+  // Albums
+  GET_ALBUMS: '/albums/',
+  GET_ALBUM: '/album/',
 };

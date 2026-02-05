@@ -89,6 +89,33 @@ export interface AddSongToPlaylistRequest {
     song_uuid: string;
 }
 
+// Artist types
+export interface Artist {
+    artist_uuid: string;
+    name: string;
+    created_by: number;
+    created_at: string;
+}
+
+export interface ArtistDetail extends Artist {
+    songs: Song[];
+}
+
+// Album types
+export interface Album {
+    album_uuid: string;
+    artist: string; // artist_uuid
+    title: string;
+    cover_image: string | null;
+    release_year: number | null;
+    created_by: number;
+    created_at: string;
+}
+
+export interface AlbumDetail extends Album {
+    songs: Song[];
+}
+
 // Player state
 export interface PlayerState {
     currentSong: Song | null;

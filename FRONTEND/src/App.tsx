@@ -11,6 +11,10 @@ import { UploadPage } from './pages/UploadPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PlaylistsPage } from './pages/PlaylistsPage';
 import { PlaylistDetailPage } from './pages/PlaylistDetailPage';
+import { ArtistsPage } from './pages/ArtistsPage';
+import { ArtistDetailPage } from './pages/ArtistDetailPage';
+import { AlbumsPage } from './pages/AlbumsPage';
+import { AlbumDetailPage } from './pages/AlbumDetailPage';
 
 function App() {
   return (
@@ -59,6 +63,38 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PlaylistDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/artists"
+                element={
+                  <ProtectedRoute>
+                    <ArtistsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/artist/:artistUuid"
+                element={
+                  <ProtectedRoute>
+                    <ArtistDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/albums"
+                element={
+                  <ProtectedRoute>
+                    <AlbumsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/album/:albumUuid"
+                element={
+                  <ProtectedRoute>
+                    <AlbumDetailPage />
                   </ProtectedRoute>
                 }
               />

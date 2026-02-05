@@ -7,11 +7,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from account.jwt_utils import CookieJWTAuthentication
-from music.models import Playlist, PlaylistSong, Song
+from music.models import Playlist, PlaylistSong, Song, Artist, Album
 from music.serializers import (
     PlaylistModelSerializer,
     PlaylistSongModelSerializer,
     SongModelSerializer,
+    ArtistModelSerializer,
+    ArtistSongModelSerializer,
+    AlbumModelSerializer,
+    AlbumSongModelSerializer,
 )
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song
@@ -258,4 +262,74 @@ class PlaylistSongView(APIView):
         return formatted_response(
             message="Song removed from playlist successfully",
             status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class ArtistView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
+
+    class ArtistKwargsSerializer(serializers.Serializer):
+        artist_uuid = serializers.UUIDField(required=False, allow_null=True)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.ArtistKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        artist_uuid = kwargs_serializer.validated_data.get("artist_uuid")
+
+        user_obj = self.request.user
+
+        if artist_uuid:
+            artist_obj = get_object_or_404(
+                Artist, created_by=user_obj, artist_uuid=artist_uuid
+            )
+
+            return formatted_response(
+                data=ArtistSongModelSerializer(artist_obj).data,
+                message="Artist fetched successfully",
+                status=status.HTTP_200_OK,
+            )
+
+        artist_objs = Artist.objects.filter(created_by=user_obj)
+
+        return formatted_response(
+            data=ArtistModelSerializer(artist_objs, many=True).data,
+            message="Artists fetched successfully",
+            status=status.HTTP_200_OK,
+        )
+
+
+class AlbumView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
+
+    class AlbumKwargsSerializer(serializers.Serializer):
+        album_uuid = serializers.UUIDField(required=False, allow_null=True)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.AlbumKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        album_uuid = kwargs_serializer.validated_data.get("album_uuid")
+
+        user_obj = self.request.user
+
+        if album_uuid:
+            album_obj = get_object_or_404(
+                Album, created_by=user_obj, album_uuid=album_uuid
+            )
+
+            return formatted_response(
+                data=AlbumSongModelSerializer(album_obj).data,
+                message="Album fetched successfully",
+                status=status.HTTP_200_OK,
+            )
+
+        album_objs = Album.objects.filter(created_by=user_obj)
+
+        return formatted_response(
+            data=AlbumModelSerializer(album_objs, many=True).data,
+            message="Albums fetched successfully",
+            status=status.HTTP_200_OK,
         )

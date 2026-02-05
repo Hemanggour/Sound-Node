@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
+import { useAuth } from '../context/AuthContext';
 
 function ScrollingText({ text, className }: { text: string; className?: string }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -41,7 +42,9 @@ export function AudioPlayer() {
         repeatMode, isShuffle, toggleRepeat, toggleShuffle
     } = usePlayer();
 
-    if (!currentSong) return null;
+    const { isAuthenticated } = useAuth();
+
+    if (!isAuthenticated || !currentSong) return null;
 
     const formatTime = (time: number) => {
         if (isNaN(time)) return '0:00';

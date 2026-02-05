@@ -18,6 +18,7 @@ class SongModelSerializer(serializers.ModelSerializer):
             "size",
             "mime_type",
             "uploaded_by",
+            "thumbnail",
         ]
         read_only_fields = ["song_uuid", "is_uploaded_to_cloud"]
 

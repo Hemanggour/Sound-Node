@@ -9,6 +9,7 @@ from django.db import transaction
 from music.models import Album, Artist, Song
 from music.services.metadata_service import extract_metadata
 from music.services.storage_service import move_to_final, save_temp_file
+from music.services.thumbnail_service import create_thumbnail
 
 
 def upload_song(file, user):
@@ -41,6 +42,7 @@ def upload_song(file, user):
         title = metadata.get("title") or os.path.splitext(file.name)[0]
         artist_name = metadata.get("artist") or "Unknown Artist"
         album_title = metadata.get("album")
+        album_art = metadata.get("album_art")
 
         # 3. Resolve artist
         artist, _ = Artist.objects.get_or_create(
@@ -72,6 +74,11 @@ def upload_song(file, user):
         # 7. Move file to permanent storage
         move_to_final(temp_path, final_path)
 
+        # 7.5 Create thumbnail if art exists
+        thumbnail_path = None
+        if album_art:
+            thumbnail_path = create_thumbnail(album_art)
+
         file_size = default_storage.size(final_path)
 
         is_uploaded_to_cloud = settings.STORAGE_BACKEND == "s3"
@@ -89,7 +96,13 @@ def upload_song(file, user):
                 mime_type=metadata["mime_type"],
                 uploaded_by=user,
                 is_uploaded_to_cloud=is_uploaded_to_cloud,
+                thumbnail=thumbnail_path,
             )
+
+            # Optional: Update album cover if it doesn't have one
+            if album and not album.cover_image and thumbnail_path:
+                album.cover_image = thumbnail_path
+                album.save()
 
         return song
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Song } from '../types';
+import { IMAGE_BASE_URL } from '../config/api';
 import { usePlayer } from '../context/PlayerContext';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 
@@ -77,9 +78,17 @@ export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
         <>
             <div className={`song-card ${isCurrentSong ? 'active' : ''}`}>
                 <div className="song-cover">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                    </svg>
+                    {song.thumbnail ? (
+                        <img
+                            src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                            alt={song.title}
+                            className="song-thumbnail-img"
+                        />
+                    ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                    )}
                     <button className="song-play-btn" onClick={handlePlay}>
                         {isCurrentSong && isPlaying ? (
                             <svg viewBox="0 0 24 24" fill="currentColor">

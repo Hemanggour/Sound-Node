@@ -7,15 +7,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from account.jwt_utils import CookieJWTAuthentication
-from music.models import Playlist, PlaylistSong, Song, Artist, Album
+from music.models import Album, Artist, Playlist, PlaylistSong, Song
 from music.serializers import (
+    AlbumModelSerializer,
+    AlbumSongModelSerializer,
+    ArtistModelSerializer,
+    ArtistSongModelSerializer,
     PlaylistModelSerializer,
     PlaylistSongModelSerializer,
     SongModelSerializer,
-    ArtistModelSerializer,
-    ArtistSongModelSerializer,
-    AlbumModelSerializer,
-    AlbumSongModelSerializer,
 )
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song

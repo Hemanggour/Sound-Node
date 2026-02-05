@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from music.models import Playlist, PlaylistSong, Song, Artist, Album
+from music.models import Album, Artist, Playlist, PlaylistSong, Song
 
 
 class SongModelSerializer(serializers.ModelSerializer):
@@ -57,7 +57,7 @@ class PlaylistModelSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return super().create(validated_data)
-    
+
     def get_songs(self, obj):
         return PlaylistSongModelSerializer(
             PlaylistSong.objects.filter(playlist=obj), many=True
@@ -98,9 +98,7 @@ class ArtistSongModelSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def get_songs(self, obj):
-        return SongModelSerializer(
-            Song.objects.filter(artist=obj), many=True
-        ).data
+        return SongModelSerializer(Song.objects.filter(artist=obj), many=True).data
 
 
 class AlbumModelSerializer(serializers.ModelSerializer):
@@ -131,7 +129,7 @@ class AlbumModelSerializer(serializers.ModelSerializer):
 
 class AlbumSongModelSerializer(serializers.ModelSerializer):
     songs = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Album
         fields = [
@@ -156,8 +154,6 @@ class AlbumSongModelSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return super().create(validated_data)
-        
+
     def get_songs(self, obj):
-        return SongModelSerializer(
-            Song.objects.filter(album=obj), many=True
-        ).data
+        return SongModelSerializer(Song.objects.filter(album=obj), many=True).data

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
+import { IMAGE_BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 function ScrollingText({ text, className }: { text: string; className?: string }) {
@@ -67,9 +68,17 @@ export function AudioPlayer() {
         <div className="audio-player">
             <div className="player-song-info">
                 <div className="player-cover">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                    </svg>
+                    {currentSong.thumbnail ? (
+                        <img
+                            src={`${IMAGE_BASE_URL}${currentSong.thumbnail}`}
+                            alt={currentSong.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                    )}
                 </div>
                 <div className="player-details" style={{ minWidth: 0, flex: 1 }}>
                     <ScrollingText text={currentSong.title} className="player-title" />

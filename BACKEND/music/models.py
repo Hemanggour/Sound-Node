@@ -68,6 +68,7 @@ class Song(models.Model):
     )
 
     is_public = models.BooleanField(default=False)
+    thumbnail = models.ImageField(upload_to="thumbnails/", null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

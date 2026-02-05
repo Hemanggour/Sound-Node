@@ -53,6 +53,7 @@ export interface Song {
     size?: number;
     mime_type?: string;
     uploaded_by?: string;
+    thumbnail?: string;
 }
 
 export interface UploadSongResponse {

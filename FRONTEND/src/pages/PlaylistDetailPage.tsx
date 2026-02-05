@@ -4,6 +4,7 @@ import playlistService from '../services/playlistService';
 import { PlaylistModal } from '../components/PlaylistModal';
 import { usePlayer } from '../context/PlayerContext';
 import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
+import { IMAGE_BASE_URL } from '../config/api';
 
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();
@@ -254,9 +255,17 @@ export function PlaylistDetailPage() {
                                 return (
                                     <div key={playlistSong.playlist_song_uuid} className={`song-card ${isCurrentSong ? 'active' : ''}`}>
                                         <div className="song-cover">
-                                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                                            </svg>
+                                            {song.thumbnail ? (
+                                                <img
+                                                    src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                                                    alt={song.title}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                                </svg>
+                                            )}
                                             <button className="song-play-btn" onClick={() => handlePlaySong(playlistSong, index)}>
                                                 {isCurrentSong && isPlaying ? (
                                                     <svg viewBox="0 0 24 24" fill="currentColor">

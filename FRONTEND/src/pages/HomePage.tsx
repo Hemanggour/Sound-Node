@@ -46,6 +46,19 @@ export function HomePage() {
 
         fetchSongs();
     }, []);
+    const handleDeleteSong = async (songUuid: string) => {
+        try {
+            const response = await musicService.deleteSong(songUuid);
+            if (response.status === 200) {
+                setSongs(songs.filter(song => song.song_uuid !== songUuid));
+            } else {
+                alert(response.message?.error || 'Failed to delete song');
+            }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to delete song');
+        }
+    };
+
     return (
         <div className="page home-page">
             {showWelcome && (
@@ -131,6 +144,7 @@ export function HomePage() {
                                 song={song}
                                 viewMode={viewMode}
                                 onPlay={() => playPlaylist(songs, index)}
+                                onDelete={() => handleDeleteSong(song.song_uuid)}
                             />
                         ))}
                     </div>

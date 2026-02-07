@@ -8,9 +8,10 @@ interface SongCardProps {
     song: Song;
     viewMode?: 'grid' | 'list';
     onPlay?: () => void;
+    onDelete?: () => void;
 }
 
-export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
+export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCardProps) {
     const { playSong, currentSong, isPlaying, togglePlay } = usePlayer();
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
@@ -23,6 +24,13 @@ export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
             onPlay();
         } else {
             playSong(song);
+        }
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (window.confirm(`Are you sure you want to delete "${song.title}"?`)) {
+            onDelete?.();
         }
     };
 
@@ -54,16 +62,29 @@ export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
                         <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
                     </div>
                     <div className="song-duration">{formatDuration(song.duration)}</div>
-                    <button
-                        className="song-action-btn-small"
-                        onClick={() => setShowPlaylistModal(true)}
-                        title="Add to playlist"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                    </button>
+                    <div className="song-actions-list">
+                        {onDelete && (
+                            <button
+                                className="song-action-btn-small delete-btn"
+                                onClick={handleDelete}
+                                title="Delete song"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            className="song-action-btn-small"
+                            onClick={() => setShowPlaylistModal(true)}
+                            title="Add to playlist"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <AddToPlaylistModal
                     isOpen={showPlaylistModal}
@@ -108,16 +129,29 @@ export function SongCard({ song, viewMode = 'grid', onPlay }: SongCardProps) {
                 </div>
                 <div className="song-actions">
                     <span className="song-duration">{formatDuration(song.duration)}</span>
-                    <button
-                        className="song-action-btn"
-                        onClick={() => setShowPlaylistModal(true)}
-                        title="Add to playlist"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                    </button>
+                    <div className="action-buttons">
+                        {onDelete && (
+                            <button
+                                className="song-action-btn delete-btn"
+                                onClick={handleDelete}
+                                title="Delete song"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            className="song-action-btn"
+                            onClick={() => setShowPlaylistModal(true)}
+                            title="Add to playlist"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 

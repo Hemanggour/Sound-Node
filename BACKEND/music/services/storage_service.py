@@ -18,3 +18,17 @@ def move_to_final(temp_path, final_path):
     default_storage.delete(temp_path)
 
     return final_path
+
+
+def delete_file(file_obj):
+    if not file_obj:
+        return
+
+    # Handle Django FieldFile objects
+    if hasattr(file_obj, "name"):
+        file_path = file_obj.name
+    else:
+        file_path = file_obj
+
+    if file_path and default_storage.exists(file_path):
+        default_storage.delete(file_path)

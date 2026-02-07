@@ -25,6 +25,11 @@ export const musicService = {
         return response.data;
     },
 
+    async deleteSong(songUuid: string): Promise<ApiResponse<null>> {
+        const response = await api.delete<ApiResponse<null>>(`${ENDPOINTS.DELETE_SONG}${songUuid}/`, { withCredentials: true });
+        return response.data;
+    },
+
     getStreamUrl(songUuid: string): string {
         return `${API_BASE_URL}${ENDPOINTS.STREAM_SONG}${songUuid}/`;
     },

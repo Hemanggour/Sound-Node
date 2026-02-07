@@ -21,6 +21,7 @@ export const ENDPOINTS = {
   // Music
   GET_SONGS: '/songs/',
   UPLOAD_SONG: '/song/upload/',
+  DELETE_SONG: '/song/delete/',
   STREAM_SONG: '/song/stream/',
 
   // Playlists

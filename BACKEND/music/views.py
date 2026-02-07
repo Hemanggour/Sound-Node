@@ -19,6 +19,7 @@ from music.serializers import (
 )
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song
+from music.services.storage_service import delete_file
 from utils.response_wrapper import formatted_response
 
 # Create your views here.
@@ -30,6 +31,9 @@ User = get_user_model()
 class SongView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
+
+    class SongKwargsSerializer(serializers.Serializer):
+        song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
     def get(self, *args, **kwargs):
         user_obj = self.request.user
@@ -57,6 +61,21 @@ class SongView(APIView):
             data=SongModelSerializer(song).data,
             message="Song uploaded successfully",
             status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, *args, **kwargs):
+        kwargs_serializer = self.SongKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        song_uuid = kwargs_serializer.validated_data.get("song_uuid")
+        user_obj = self.request.user
+
+        song = get_object_or_404(Song, uploaded_by=user_obj, song_uuid=song_uuid)
+        song.delete()
+
+        return formatted_response(
+            message="Song deleted successfully",
+            status=status.HTTP_200_OK,
         )
 
 
@@ -331,5 +350,20 @@ class AlbumView(APIView):
         return formatted_response(
             data=AlbumModelSerializer(album_objs, many=True).data,
             message="Albums fetched successfully",
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, *args, **kwargs):
+        kwargs_serializer = self.AlbumKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        album_uuid = kwargs_serializer.validated_data.get("album_uuid")
+        user_obj = self.request.user
+
+        album = get_object_or_404(Album, created_by=user_obj, album_uuid=album_uuid)
+        album.delete()
+
+        return formatted_response(
+            message="Album deleted successfully",
             status=status.HTTP_200_OK,
         )

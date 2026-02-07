@@ -8,7 +8,7 @@ import type { Song } from '../types';
 
 export function HomePage() {
     const { user } = useAuth();
-    const { playPlaylist } = usePlayer();
+    const { playPlaylist, removeSong } = usePlayer();
     const location = useLocation();
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +51,7 @@ export function HomePage() {
             const response = await musicService.deleteSong(songUuid);
             if (response.status === 200) {
                 setSongs(songs.filter(song => song.song_uuid !== songUuid));
+                removeSong(songUuid);
             } else {
                 alert(response.message?.error || 'Failed to delete song');
             }

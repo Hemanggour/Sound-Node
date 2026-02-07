@@ -24,6 +24,7 @@ interface PlayerContextType {
     isShuffle: boolean;
     toggleRepeat: () => void;
     toggleShuffle: () => void;
+    removeSong: (songUuid: string) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -285,6 +286,40 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const removeSong = (songUuid: string) => {
+        // 1. Check if the deleted song is the current song
+        if (currentSong?.song_uuid === songUuid) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = '';
+            }
+            setCurrentSong(null);
+            setIsPlaying(false);
+            setProgress(0);
+            setDuration(0);
+        }
+
+        // 2. Remove from currentPlaylist
+        const updatedPlaylist = currentPlaylist.filter(s => s.song_uuid !== songUuid);
+        if (updatedPlaylist.length !== currentPlaylist.length) {
+            setCurrentPlaylist(updatedPlaylist);
+
+            // Update currentIndex if a song is still playing or if we need to adjust for removal
+            if (currentSong && currentSong.song_uuid !== songUuid) {
+                const newIndex = updatedPlaylist.findIndex(s => s.song_uuid === currentSong.song_uuid);
+                setCurrentIndex(newIndex);
+            } else if (currentSong?.song_uuid === songUuid) {
+                setCurrentIndex(-1);
+            }
+        }
+
+        // 3. Remove from originalPlaylist
+        const updatedOriginal = originalPlaylist.filter(s => s.song_uuid !== songUuid);
+        if (updatedOriginal.length !== originalPlaylist.length) {
+            setOriginalPlaylist(updatedOriginal);
+        }
+    };
+
     return (
         <PlayerContext.Provider
             value={{
@@ -307,6 +342,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 isShuffle,
                 toggleRepeat,
                 toggleShuffle,
+                removeSong,
             }}
         >
             {children}

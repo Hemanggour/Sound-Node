@@ -13,6 +13,16 @@ def delete_song_files(sender, instance, **kwargs):
     if instance.thumbnail:
         delete_file(instance.thumbnail)
 
+    # Cleanup orphaned Album
+    if instance.album:
+        if not Song.objects.filter(album=instance.album).exists():
+            instance.album.delete()
+
+    # Cleanup orphaned Artist
+    if instance.artist:
+        if not Song.objects.filter(artist=instance.artist).exists():
+            instance.artist.delete()
+
 @receiver(post_delete, sender=Album)
 def delete_album_files(sender, instance, **kwargs):
     """

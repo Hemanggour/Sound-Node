@@ -35,12 +35,35 @@ class SongView(APIView):
     class SongKwargsSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
+    class SongQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+        artist_uuid = serializers.UUIDField(required=False, allow_null=False)
+        album_uuid = serializers.UUIDField(required=False, allow_null=False)
+
     def get(self, *args, **kwargs):
         user_obj = self.request.user
 
+        query_serializer = self.SongQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
+        # Base queryset
         song_objs = Song.objects.filter(
             uploaded_by=user_obj, is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3"
         )
+
+        # Apply optional filters
+        search_query = query_serializer.validated_data.get("q")
+        artist_uuid = query_serializer.validated_data.get("artist_uuid")
+        album_uuid = query_serializer.validated_data.get("album_uuid")
+
+        if search_query:
+            song_objs = song_objs.filter(title__icontains=search_query)
+
+        if artist_uuid:
+            song_objs = song_objs.filter(artist__artist_uuid=artist_uuid)
+
+        if album_uuid:
+            song_objs = song_objs.filter(album__album_uuid=album_uuid)
 
         return formatted_response(data=SongModelSerializer(song_objs, many=True).data)
 
@@ -138,7 +161,7 @@ class PlaylistView(APIView):
         )
 
         return formatted_response(
-            data=PlaylistModelSerializer(playlist).data,  # Here is the error
+            data=PlaylistModelSerializer(playlist).data,
             message="Playlist created successfully",
             status=status.HTTP_201_CREATED,
         )

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import artistService from '../services/artistService';
+import musicService from '../services/musicService';
 import { usePlayer } from '../context/PlayerContext';
+import { SearchBar } from '../components/SearchBar';
 import type { ArtistDetail, Song } from '../types';
 import { IMAGE_BASE_URL } from '../config/api';
 
@@ -10,8 +12,10 @@ export function ArtistDetailPage() {
     const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
 
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
+    const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         const savedMode = localStorage.getItem('artistViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'list';
@@ -27,6 +31,16 @@ export function ArtistDetailPage() {
         }
     }, [artistUuid]);
 
+    // Only call the search endpoint when user is actually searching
+    useEffect(() => {
+        if (artistUuid && searchQuery) {
+            fetchFilteredSongs();
+        } else if (artist) {
+            // Reset to songs from artist detail when search is cleared
+            setFilteredSongs(artist.songs);
+        }
+    }, [artistUuid, searchQuery]);
+
     const fetchArtistData = async () => {
         if (!artistUuid) return;
 
@@ -35,6 +49,7 @@ export function ArtistDetailPage() {
             const response = await artistService.getArtist(artistUuid);
             if (response.status === 200) {
                 setArtist(response.data);
+                setFilteredSongs(response.data.songs);
             } else {
                 setError(response.message?.error || 'Failed to fetch artist details');
             }
@@ -45,9 +60,22 @@ export function ArtistDetailPage() {
         }
     };
 
+    const fetchFilteredSongs = async () => {
+        if (!artistUuid) return;
+
+        try {
+            const response = await musicService.getSongs({ q: searchQuery, artist_uuid: artistUuid });
+            if (response.status === 200) {
+                setFilteredSongs(response.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch filtered songs:', err);
+        }
+    };
+
     const handlePlayAll = () => {
-        if (artist && artist.songs.length > 0) {
-            playPlaylist(artist.songs);
+        if (filteredSongs.length > 0) {
+            playPlaylist(filteredSongs);
         }
     };
 
@@ -55,8 +83,8 @@ export function ArtistDetailPage() {
         const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
         if (isCurrentSong) {
             togglePlay();
-        } else if (artist) {
-            playPlaylist(artist.songs, index);
+        } else {
+            playPlaylist(filteredSongs, index);
         }
     };
 
@@ -108,12 +136,14 @@ export function ArtistDetailPage() {
                         <div>
                             <h1>{artist.name}</h1>
                             <p className="playlist-meta">
-                                {artist.songs.length} {artist.songs.length === 1 ? 'song' : 'songs'}
+                                {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'}
+                                {searchQuery && ` (filtered)`}
                             </p>
                         </div>
                     </div>
 
                     <div className="playlist-actions-group">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search artist songs..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -144,7 +174,7 @@ export function ArtistDetailPage() {
                         </div>
 
                         <div className="playlist-actions">
-                            {artist.songs.length > 0 && (
+                            {filteredSongs.length > 0 && (
                                 <button className="btn btn-primary" onClick={handlePlayAll}>
                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                         <polygon points="5,3 19,12 5,21" />
@@ -160,7 +190,7 @@ export function ArtistDetailPage() {
             <section className="content-section">
                 {error && <div className="error-message">{error}</div>}
 
-                {artist.songs.length === 0 ? (
+                {filteredSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -169,11 +199,12 @@ export function ArtistDetailPage() {
                                 <circle cx="18" cy="16" r="3" />
                             </svg>
                         </div>
-                        <h3>No songs by this artist</h3>
+                        <h3>{searchQuery ? 'No songs found' : 'No songs by this artist'}</h3>
+                        {searchQuery && <p>Try a different search term</p>}
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
-                        {artist.songs.map((song, index) => {
+                        {filteredSongs.map((song, index) => {
                             const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
 
                             if (viewMode === 'grid') {

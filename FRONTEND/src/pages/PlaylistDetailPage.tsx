@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import playlistService from '../services/playlistService';
 import { PlaylistModal } from '../components/PlaylistModal';
+import { SearchBar } from '../components/SearchBar';
 import { usePlayer } from '../context/PlayerContext';
 import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
 import { IMAGE_BASE_URL } from '../config/api';
@@ -16,6 +17,7 @@ export function PlaylistDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [showEditModal, setShowEditModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         const savedMode = localStorage.getItem('playlistViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'list';
@@ -36,18 +38,13 @@ export function PlaylistDetailPage() {
 
         try {
             setIsLoading(true);
-            const [playlistResponse, songsResponse] = await Promise.all([
-                playlistService.getPlaylists(),
-                playlistService.getPlaylistSongs(playlistUuid)
-            ]);
+            const playlistResponse = await playlistService.getPlaylists();
 
             const foundPlaylist = playlistResponse.data.find(p => p.playlist_uuid === playlistUuid);
             if (foundPlaylist) {
                 setPlaylist(foundPlaylist);
-            }
-
-            if (songsResponse.status === 200) {
-                setPlaylistSongs(songsResponse.data);
+                // Use songs from the playlist response directly instead of making a separate API call
+                setPlaylistSongs(foundPlaylist.songs);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load playlist');
@@ -87,9 +84,18 @@ export function PlaylistDetailPage() {
         }
     };
 
+    // Filter playlist songs based on search query
+    const filteredPlaylistSongs = useMemo(() => {
+        if (!searchQuery) return playlistSongs;
+        return playlistSongs.filter(ps =>
+            ps.song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            ps.song.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [playlistSongs, searchQuery]);
+
     const handlePlayAll = () => {
-        if (playlistSongs.length > 0) {
-            const songs = playlistSongs.map(ps => ps.song);
+        if (filteredPlaylistSongs.length > 0) {
+            const songs = filteredPlaylistSongs.map(ps => ps.song);
             playPlaylist(songs);
         }
     };
@@ -99,8 +105,8 @@ export function PlaylistDetailPage() {
         if (isCurrentSong) {
             togglePlay();
         } else {
-            // Map all playlist songs to simple Song objects for the player
-            const songs = playlistSongs.map(ps => ps.song);
+            // Map filtered playlist songs to simple Song objects for the player
+            const songs = filteredPlaylistSongs.map(ps => ps.song);
             playPlaylist(songs, index);
         }
     };
@@ -155,12 +161,14 @@ export function PlaylistDetailPage() {
                         <div>
                             <h1>{playlist.name}</h1>
                             <p className="playlist-meta">
-                                {playlistSongs.length} {playlistSongs.length === 1 ? 'song' : 'songs'}
+                                {filteredPlaylistSongs.length} {filteredPlaylistSongs.length === 1 ? 'song' : 'songs'}
+                                {searchQuery && ` (filtered)`}
                             </p>
                         </div>
                     </div>
 
                     <div className="playlist-actions-group">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search in playlist..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -191,7 +199,7 @@ export function PlaylistDetailPage() {
                         </div>
 
                         <div className="playlist-actions">
-                            {playlistSongs.length > 0 && (
+                            {filteredPlaylistSongs.length > 0 && (
                                 <button className="btn btn-primary" onClick={handlePlayAll}>
                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                         <polygon points="5,3 19,12 5,21" />
@@ -221,7 +229,7 @@ export function PlaylistDetailPage() {
             <section className="content-section">
                 {error && <div className="error-message">{error}</div>}
 
-                {playlistSongs.length === 0 ? (
+                {filteredPlaylistSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -230,15 +238,17 @@ export function PlaylistDetailPage() {
                                 <circle cx="18" cy="16" r="3" />
                             </svg>
                         </div>
-                        <h3>No songs in this playlist</h3>
-                        <p>Add songs from your library to get started</p>
-                        <Link to="/" className="btn btn-primary">
-                            Go to Library
-                        </Link>
+                        <h3>{searchQuery ? 'No songs found' : 'No songs in this playlist'}</h3>
+                        <p>{searchQuery ? 'Try a different search term' : 'Add songs from your library to get started'}</p>
+                        {!searchQuery && (
+                            <Link to="/" className="btn btn-primary">
+                                Go to Library
+                            </Link>
+                        )}
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
-                        {playlistSongs.map((playlistSong, index) => {
+                        {filteredPlaylistSongs.map((playlistSong, index) => {
                             const song = playlistSong.song;
                             const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
 

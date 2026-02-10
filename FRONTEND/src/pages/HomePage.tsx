@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 import { SongCard } from '../components/SongCard';
+import { SearchBar } from '../components/SearchBar';
 import musicService from '../services/musicService';
 import type { Song } from '../types';
 
@@ -13,6 +14,7 @@ export function HomePage() {
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         const savedMode = localStorage.getItem('homeViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'grid';
@@ -31,7 +33,8 @@ export function HomePage() {
         const fetchSongs = async () => {
             try {
                 setIsLoading(true);
-                const response = await musicService.getSongs();
+                const params = searchQuery ? { q: searchQuery } : undefined;
+                const response = await musicService.getSongs(params);
                 if (response.status === 200) {
                     setSongs(response.data);
                 } else {
@@ -45,7 +48,7 @@ export function HomePage() {
         };
 
         fetchSongs();
-    }, []);
+    }, [searchQuery]);
     const handleDeleteSong = async (songUuid: string) => {
         try {
             const response = await musicService.deleteSong(songUuid);
@@ -77,6 +80,7 @@ export function HomePage() {
                 <div className="section-header">
                     <h2>Your Library</h2>
                     <div className="header-actions">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search your songs..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}

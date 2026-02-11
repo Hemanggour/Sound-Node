@@ -10,8 +10,8 @@ class MusicConfig(AppConfig):
 
     def ready(self):
         import music.signals  # noqa
+
         if settings.STORAGE_BACKEND == "s3":
             ensure_bucket_exists(
                 settings.AWS_STORAGE_BUCKET_NAME, settings.AWS_S3_REGION_NAME
             )
-

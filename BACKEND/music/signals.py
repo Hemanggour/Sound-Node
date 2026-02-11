@@ -1,7 +1,9 @@
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from music.models import Song, Album
+
+from music.models import Album, Song
 from music.services.storage_service import delete_file
+
 
 @receiver(post_delete, sender=Song)
 def delete_song_files(sender, instance, **kwargs):
@@ -22,6 +24,7 @@ def delete_song_files(sender, instance, **kwargs):
     if instance.artist:
         if not Song.objects.filter(artist=instance.artist).exists():
             instance.artist.delete()
+
 
 @receiver(post_delete, sender=Album)
 def delete_album_files(sender, instance, **kwargs):

@@ -19,7 +19,6 @@ from music.serializers import (
 )
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song
-from music.services.storage_service import delete_file
 from utils.response_wrapper import formatted_response
 
 # Create your views here.

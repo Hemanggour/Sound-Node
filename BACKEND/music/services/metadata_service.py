@@ -1,6 +1,6 @@
 from mutagen import File as MutagenFile
-from mutagen.id3 import ID3, APIC
-from mutagen.mp4 import MP4, MP4Cover
+from mutagen.id3 import ID3
+from mutagen.mp4 import MP4
 
 
 def extract_metadata(file_path):
@@ -10,7 +10,7 @@ def extract_metadata(file_path):
         raise ValueError("Unsupported or corrupted audio file")
 
     metadata = {}
-    
+
     tags = audio.tags
     if not tags:
         metadata = {
@@ -38,7 +38,7 @@ def extract_metadata(file_path):
         metadata["title"] = tags.get("TIT2", [None])[0]
         metadata["artist"] = tags.get("TPE1", [None])[0]
         metadata["album"] = tags.get("TALB", [None])[0]
-        
+
         # In case we used EasyID3 before, let's fall back or try common keys
         if not metadata["title"] and hasattr(tags, "get"):
             metadata["title"] = tags.get("title", [None])[0]

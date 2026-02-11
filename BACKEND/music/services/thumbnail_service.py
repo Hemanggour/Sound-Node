@@ -1,9 +1,10 @@
 import io
-import os
 import uuid
-from PIL import Image
-from django.core.files.storage import default_storage
+
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from PIL import Image
+
 
 def create_thumbnail(image_bytes, size=(200, 200)):
     """
@@ -16,7 +17,7 @@ def create_thumbnail(image_bytes, size=(200, 200)):
     try:
         # Load image from bytes
         img = Image.open(io.BytesIO(image_bytes))
-        
+
         # Convert to RGB if necessary (e.g., for PNG with transparency)
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")

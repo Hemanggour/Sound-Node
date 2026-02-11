@@ -275,11 +275,46 @@ a:hover {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 12px;
+  transition: all var(--transition-base);
+}
+
+.search-toggle-btn {
+  display: none;
+  /* Hidden on desktop */
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.search-toggle-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.search-toggle-btn .search-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
   min-width: 280px;
   max-width: 400px;
 }
 
-.search-icon {
+.search-icon-inside {
   position: absolute;
   left: 14px;
   width: 18px;
@@ -310,7 +345,8 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
-.search-clear-btn {
+.search-clear-btn,
+.search-close-mobile-btn {
   position: absolute;
   right: 8px;
   display: flex;
@@ -327,14 +363,20 @@ a:hover {
   transition: all var(--transition-fast);
 }
 
-.search-clear-btn:hover {
+.search-clear-btn:hover,
+.search-close-mobile-btn:hover {
   background: var(--glass-bg);
   color: var(--text-primary);
 }
 
-.search-clear-btn svg {
+.search-clear-btn svg,
+.search-close-mobile-btn svg {
   width: 14px;
   height: 14px;
+}
+
+.search-close-mobile-btn {
+  display: none;
 }
 
 /* Header Actions */
@@ -342,6 +384,66 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+/* Tablet & Mobile Search */
+@media (max-width: 1024px) {
+  .search-toggle-btn {
+    display: flex;
+  }
+
+  .search-bar.collapsed .search-input-wrapper {
+    display: none;
+  }
+
+  .search-bar.expanded {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    z-index: 10;
+    padding: 0 var(--container-padding);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .search-bar.expanded .search-toggle-btn {
+    display: none;
+  }
+
+  .search-bar.expanded .search-input-wrapper {
+    display: flex;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .search-bar.expanded .search-close-mobile-btn {
+    display: flex;
+    position: relative;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .search-bar.expanded .search-clear-btn {
+    right: 48px;
+  }
+
+  .section-header,
+  .page-header,
+  .playlist-header-content,
+  .playlist-actions-group {
+    position: relative;
+    /* Ensure child absolute positioning works */
+    min-height: 48px;
+  }
 }
 
 .view-toggle {
@@ -1358,6 +1460,47 @@ a:hover {
     display: none;
   }
 
+  .playlist-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .playlist-actions-group {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .playlist-actions {
+    display: none !important;
+  }
+
+  .play-all-mobile {
+    display: flex !important;
+    width: auto;
+    margin: 0;
+  }
+
+  .play-all-mobile .btn {
+    width: auto;
+    padding: 8px 16px;
+    height: 40px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .playlist-icon {
+    width: 120px;
+    height: 120px;
+  }
+
+  .playlist-info-section {
+    width: 100%;
+  }
+
   h1 {
     font-size: 2rem;
   }
@@ -1781,9 +1924,12 @@ a:hover {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0 .2);
-  border-color: rgba(239, 68, 68,
-      0.3);
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.play-all-mobile {
+  display: none;
 }
 
 /* Song List */

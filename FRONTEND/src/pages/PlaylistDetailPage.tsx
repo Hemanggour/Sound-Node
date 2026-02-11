@@ -168,7 +168,6 @@ export function PlaylistDetailPage() {
                     </div>
 
                     <div className="playlist-actions-group">
-                        <SearchBar onSearch={setSearchQuery} placeholder="Search in playlist..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -198,6 +197,7 @@ export function PlaylistDetailPage() {
                             </button>
                         </div>
 
+
                         <div className="playlist-actions">
                             {filteredPlaylistSongs.length > 0 && (
                                 <button className="btn btn-primary" onClick={handlePlayAll}>
@@ -224,9 +224,26 @@ export function PlaylistDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {filteredPlaylistSongs.length > 0 && (
+                    <div className="play-all-mobile">
+                        <button className="btn btn-primary" onClick={handlePlayAll}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                            Play All Songs
+                        </button>
+                    </div>
+                )}
             </header>
 
             <section className="content-section">
+                <div className="section-header">
+                    <h2>Songs</h2>
+                    <div className="header-actions">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search in playlist..." />
+                    </div>
+                </div>
                 {error && <div className="error-message">{error}</div>}
 
                 {filteredPlaylistSongs.length === 0 ? (
@@ -351,7 +368,7 @@ export function PlaylistDetailPage() {
                 )}
             </section>
 
-            {showEditModal && (
+            {showEditModal && playlist && (
                 <PlaylistModal
                     isOpen={true}
                     onClose={() => setShowEditModal(false)}

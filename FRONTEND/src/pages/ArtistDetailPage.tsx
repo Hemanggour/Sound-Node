@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import artistService from '../services/artistService';
-import musicService from '../services/musicService';
 import { usePlayer } from '../context/PlayerContext';
 import { SearchBar } from '../components/SearchBar';
 import type { ArtistDetail, Song } from '../types';
@@ -12,7 +11,6 @@ export function ArtistDetailPage() {
     const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
 
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
-    const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -31,16 +29,6 @@ export function ArtistDetailPage() {
         }
     }, [artistUuid]);
 
-    // Only call the search endpoint when user is actually searching
-    useEffect(() => {
-        if (artistUuid && searchQuery) {
-            fetchFilteredSongs();
-        } else if (artist) {
-            // Reset to songs from artist detail when search is cleared
-            setFilteredSongs(artist.songs);
-        }
-    }, [artistUuid, searchQuery]);
-
     const fetchArtistData = async () => {
         if (!artistUuid) return;
 
@@ -49,7 +37,6 @@ export function ArtistDetailPage() {
             const response = await artistService.getArtist(artistUuid);
             if (response.status === 200) {
                 setArtist(response.data);
-                setFilteredSongs(response.data.songs);
             } else {
                 setError(response.message?.error || 'Failed to fetch artist details');
             }
@@ -60,18 +47,13 @@ export function ArtistDetailPage() {
         }
     };
 
-    const fetchFilteredSongs = async () => {
-        if (!artistUuid) return;
-
-        try {
-            const response = await musicService.getSongs({ q: searchQuery, artist_uuid: artistUuid });
-            if (response.status === 200) {
-                setFilteredSongs(response.data);
-            }
-        } catch (err) {
-            console.error('Failed to fetch filtered songs:', err);
-        }
-    };
+    const filteredSongs = useMemo(() => {
+        if (!artist) return [];
+        if (!searchQuery) return artist.songs;
+        return artist.songs.filter(s =>
+            s.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [artist, searchQuery]);
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
@@ -143,7 +125,6 @@ export function ArtistDetailPage() {
                     </div>
 
                     <div className="playlist-actions-group">
-                        <SearchBar onSearch={setSearchQuery} placeholder="Search artist songs..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -185,9 +166,26 @@ export function ArtistDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {filteredSongs.length > 0 && (
+                    <div className="play-all-mobile">
+                        <button className="btn btn-primary" onClick={handlePlayAll}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                            Play All Songs
+                        </button>
+                    </div>
+                )}
             </header>
 
             <section className="content-section">
+                <div className="section-header">
+                    <h2>Songs</h2>
+                    <div className="header-actions">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search artist songs..." />
+                    </div>
+                </div>
                 {error && <div className="error-message">{error}</div>}
 
                 {filteredSongs.length === 0 ? (

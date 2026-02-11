@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import playlistService from '../services/playlistService';
 import { PlaylistCard } from '../components/PlaylistCard';
 import { PlaylistModal } from '../components/PlaylistModal';
+import { SearchBar } from '../components/SearchBar';
 import type { Playlist, CreatePlaylistRequest } from '../types';
 
 export function PlaylistsPage() {
     const [playlists, setPlaylists] = useState<Playlist[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
 
@@ -58,6 +60,11 @@ export function PlaylistsPage() {
         }
     };
 
+    const filteredPlaylists = useMemo(() => {
+        if (!searchQuery) return playlists;
+        return playlists.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    }, [playlists, searchQuery]);
+
     return (
         <div className="page playlists-page">
             <header className="page-header">
@@ -67,16 +74,19 @@ export function PlaylistsPage() {
                     </h1>
                     <p>Organize your music into collections</p>
                 </div>
-                <button
-                    className="btn btn-primary"
-                    onClick={() => setShowCreateModal(true)}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Create Playlist
-                </button>
+                <div className="header-actions">
+                    <SearchBar onSearch={setSearchQuery} placeholder="Search playlists..." />
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Create Playlist
+                    </button>
+                </div>
             </header>
 
             <section className="content-section">
@@ -87,7 +97,7 @@ export function PlaylistsPage() {
                         <span className="loader"></span>
                         <p>Loading playlists...</p>
                     </div>
-                ) : playlists.length === 0 ? (
+                ) : filteredPlaylists.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -97,18 +107,20 @@ export function PlaylistsPage() {
                                 <rect x="3" y="14" width="7" height="7" />
                             </svg>
                         </div>
-                        <h3>No playlists yet</h3>
-                        <p>Create your first playlist to organize your music</p>
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => setShowCreateModal(true)}
-                        >
-                            Create Your First Playlist
-                        </button>
+                        <h3>{searchQuery ? 'No playlists found' : 'No playlists yet'}</h3>
+                        <p>{searchQuery ? 'Try a different search term' : 'Create your first playlist to organize your music'}</p>
+                        {!searchQuery && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowCreateModal(true)}
+                            >
+                                Create Your First Playlist
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {playlists.map((playlist) => (
+                        {filteredPlaylists.map((playlist) => (
                             <PlaylistCard
                                 key={playlist.playlist_uuid}
                                 playlist={playlist}

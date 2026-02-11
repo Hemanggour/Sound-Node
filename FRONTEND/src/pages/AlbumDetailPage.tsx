@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import albumService from '../services/albumService';
-import musicService from '../services/musicService';
 import { usePlayer } from '../context/PlayerContext';
 import { SearchBar } from '../components/SearchBar';
 import { IMAGE_BASE_URL } from '../config/api';
@@ -12,7 +11,6 @@ export function AlbumDetailPage() {
     const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
 
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
-    const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -31,16 +29,6 @@ export function AlbumDetailPage() {
         }
     }, [albumUuid]);
 
-    // Only call the search endpoint when user is actually searching
-    useEffect(() => {
-        if (albumUuid && searchQuery) {
-            fetchFilteredSongs();
-        } else if (album) {
-            // Reset to songs from album detail when search is cleared
-            setFilteredSongs(album.songs);
-        }
-    }, [albumUuid, searchQuery]);
-
     const fetchAlbumData = async () => {
         if (!albumUuid) return;
 
@@ -49,7 +37,6 @@ export function AlbumDetailPage() {
             const response = await albumService.getAlbum(albumUuid);
             if (response.status === 200) {
                 setAlbum(response.data);
-                setFilteredSongs(response.data.songs);
             } else {
                 setError(response.message?.error || 'Failed to fetch album details');
             }
@@ -60,18 +47,13 @@ export function AlbumDetailPage() {
         }
     };
 
-    const fetchFilteredSongs = async () => {
-        if (!albumUuid) return;
-
-        try {
-            const response = await musicService.getSongs({ q: searchQuery, album_uuid: albumUuid });
-            if (response.status === 200) {
-                setFilteredSongs(response.data);
-            }
-        } catch (err) {
-            console.error('Failed to fetch filtered songs:', err);
-        }
-    };
+    const filteredSongs = useMemo(() => {
+        if (!album) return [];
+        if (!searchQuery) return album.songs;
+        return album.songs.filter(s =>
+            s.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [album, searchQuery]);
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
@@ -152,7 +134,6 @@ export function AlbumDetailPage() {
                     </div>
 
                     <div className="playlist-actions-group">
-                        <SearchBar onSearch={setSearchQuery} placeholder="Search in album..." />
                         <div className="view-toggle">
                             <button
                                 className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -194,9 +175,26 @@ export function AlbumDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {filteredSongs.length > 0 && (
+                    <div className="play-all-mobile">
+                        <button className="btn btn-primary" onClick={handlePlayAll}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                            Play All Songs
+                        </button>
+                    </div>
+                )}
             </header>
 
             <section className="content-section">
+                <div className="section-header">
+                    <h2>Songs</h2>
+                    <div className="header-actions">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search in album..." />
+                    </div>
+                </div>
                 {error && <div className="error-message">{error}</div>}
 
                 {filteredSongs.length === 0 ? (

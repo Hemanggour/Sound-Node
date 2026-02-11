@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import artistService from '../services/artistService';
 import { usePlayer } from '../context/PlayerContext';
+import { SearchBar } from '../components/SearchBar';
 import type { ArtistDetail, Song } from '../types';
 import { IMAGE_BASE_URL } from '../config/api';
 
@@ -12,6 +13,7 @@ export function ArtistDetailPage() {
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         const savedMode = localStorage.getItem('artistViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'list';
@@ -45,9 +47,17 @@ export function ArtistDetailPage() {
         }
     };
 
+    const filteredSongs = useMemo(() => {
+        if (!artist) return [];
+        if (!searchQuery) return artist.songs;
+        return artist.songs.filter(s =>
+            s.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [artist, searchQuery]);
+
     const handlePlayAll = () => {
-        if (artist && artist.songs.length > 0) {
-            playPlaylist(artist.songs);
+        if (filteredSongs.length > 0) {
+            playPlaylist(filteredSongs);
         }
     };
 
@@ -55,8 +65,8 @@ export function ArtistDetailPage() {
         const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
         if (isCurrentSong) {
             togglePlay();
-        } else if (artist) {
-            playPlaylist(artist.songs, index);
+        } else {
+            playPlaylist(filteredSongs, index);
         }
     };
 
@@ -108,7 +118,8 @@ export function ArtistDetailPage() {
                         <div>
                             <h1>{artist.name}</h1>
                             <p className="playlist-meta">
-                                {artist.songs.length} {artist.songs.length === 1 ? 'song' : 'songs'}
+                                {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'}
+                                {searchQuery && ` (filtered)`}
                             </p>
                         </div>
                     </div>
@@ -144,7 +155,7 @@ export function ArtistDetailPage() {
                         </div>
 
                         <div className="playlist-actions">
-                            {artist.songs.length > 0 && (
+                            {filteredSongs.length > 0 && (
                                 <button className="btn btn-primary" onClick={handlePlayAll}>
                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                         <polygon points="5,3 19,12 5,21" />
@@ -155,12 +166,29 @@ export function ArtistDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {filteredSongs.length > 0 && (
+                    <div className="play-all-mobile">
+                        <button className="btn btn-primary" onClick={handlePlayAll}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                            Play All Songs
+                        </button>
+                    </div>
+                )}
             </header>
 
             <section className="content-section">
+                <div className="section-header">
+                    <h2>Songs</h2>
+                    <div className="header-actions">
+                        <SearchBar onSearch={setSearchQuery} placeholder="Search artist songs..." />
+                    </div>
+                </div>
                 {error && <div className="error-message">{error}</div>}
 
-                {artist.songs.length === 0 ? (
+                {filteredSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -169,11 +197,12 @@ export function ArtistDetailPage() {
                                 <circle cx="18" cy="16" r="3" />
                             </svg>
                         </div>
-                        <h3>No songs by this artist</h3>
+                        <h3>{searchQuery ? 'No songs found' : 'No songs by this artist'}</h3>
+                        {searchQuery && <p>Try a different search term</p>}
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
-                        {artist.songs.map((song, index) => {
+                        {filteredSongs.map((song, index) => {
                             const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
 
                             if (viewMode === 'grid') {

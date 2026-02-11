@@ -3,8 +3,11 @@ import { API_BASE_URL, ENDPOINTS } from '../config/api';
 import type { ApiResponse, UploadSongResponse, Song } from '../types';
 
 export const musicService = {
-    async getSongs(): Promise<ApiResponse<Song[]>> {
-        const response = await api.get<ApiResponse<Song[]>>(ENDPOINTS.GET_SONGS, { withCredentials: true });
+    async getSongs(params?: { q?: string; artist_uuid?: string; album_uuid?: string }): Promise<ApiResponse<Song[]>> {
+        const response = await api.get<ApiResponse<Song[]>>(ENDPOINTS.GET_SONGS, { 
+            params,
+            withCredentials: true 
+        });
         return response.data;
     },
 

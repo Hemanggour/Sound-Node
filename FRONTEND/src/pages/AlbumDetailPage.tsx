@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import albumService from '../services/albumService';
 import { usePlayer } from '../context/PlayerContext';
 import { SearchBar } from '../components/SearchBar';
-import { IMAGE_BASE_URL } from '../config/api';
 import type { AlbumDetail, Song } from '../types';
 
 export function AlbumDetailPage() {
@@ -112,7 +111,7 @@ export function AlbumDetailPage() {
                         <div className="playlist-icon" style={{ overflow: 'hidden' }}>
                             {album.cover_image ? (
                                 <img
-                                    src={`${IMAGE_BASE_URL}${album.cover_image}`}
+                                    src={`${album.cover_image}`}
                                     alt={album.title}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
@@ -220,7 +219,7 @@ export function AlbumDetailPage() {
                                         <div className="song-cover">
                                             {song.thumbnail ? (
                                                 <img
-                                                    src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                                                    src={`${song.thumbnail}`}
                                                     alt={song.title}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />

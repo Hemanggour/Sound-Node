@@ -47,7 +47,9 @@ class SongView(APIView):
 
         # Base queryset
         song_objs = Song.objects.filter(
-            uploaded_by=user_obj, is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3"
+            uploaded_by=user_obj,
+            is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+            is_upload_complete=True,
         )
 
         # Apply optional filters
@@ -64,7 +66,11 @@ class SongView(APIView):
         if album_uuid:
             song_objs = song_objs.filter(album__album_uuid=album_uuid)
 
-        return formatted_response(data=SongModelSerializer(song_objs, many=True).data)
+        return formatted_response(
+            data=SongModelSerializer(
+                song_objs, many=True, context={"request": self.request}
+            ).data
+        )
 
     def post(self, *args, **kwargs):
         file = self.request.FILES.get("file")
@@ -80,7 +86,7 @@ class SongView(APIView):
         song = upload_song(file=file, user=user_obj)
 
         return formatted_response(
-            data=SongModelSerializer(song).data,
+            data=SongModelSerializer(song, context={"request": self.request}).data,
             message="Song uploaded successfully",
             status=status.HTTP_201_CREATED,
         )
@@ -115,7 +121,7 @@ class SongStreamView(APIView):
 
         song_uuid = kwargs_serializer.validated_data.get("song_uuid")
 
-        song = get_object_or_404(Song, song_uuid=song_uuid)
+        song = get_object_or_404(Song, song_uuid=song_uuid, is_upload_complete=True)
 
         return stream_file(
             request=self.request,
@@ -142,7 +148,9 @@ class PlaylistView(APIView):
         playlist_objs = Playlist.objects.filter(owner=user_obj)
 
         return formatted_response(
-            data=PlaylistModelSerializer(playlist_objs, many=True).data,
+            data=PlaylistModelSerializer(
+                playlist_objs, many=True, context={"request": self.request}
+            ).data,
             message="Playlists fetched successfully",
             status=status.HTTP_200_OK,
         )
@@ -160,7 +168,9 @@ class PlaylistView(APIView):
         )
 
         return formatted_response(
-            data=PlaylistModelSerializer(playlist).data,
+            data=PlaylistModelSerializer(
+                playlist, context={"request": self.request}
+            ).data,
             message="Playlist created successfully",
             status=status.HTTP_201_CREATED,
         )
@@ -183,7 +193,9 @@ class PlaylistView(APIView):
         playlist.save()
 
         return formatted_response(
-            data=PlaylistModelSerializer(playlist).data,
+            data=PlaylistModelSerializer(
+                playlist, context={"request": self.request}
+            ).data,
             message="Playlist updated successfully",
             status=status.HTTP_200_OK,
         )
@@ -233,7 +245,9 @@ class PlaylistSongView(APIView):
         playlistsong_objs = PlaylistSong.objects.filter(playlist=playlist)
 
         return formatted_response(
-            data=PlaylistSongModelSerializer(playlistsong_objs, many=True).data,
+            data=PlaylistSongModelSerializer(
+                playlistsong_objs, many=True, context={"request": self.request}
+            ).data,
             message="Playlist songs fetched successfully",
             status=status.HTTP_200_OK,
         )
@@ -275,7 +289,9 @@ class PlaylistSongView(APIView):
         )
 
         return formatted_response(
-            data=PlaylistSongModelSerializer(playlist_song).data,
+            data=PlaylistSongModelSerializer(
+                playlist_song, context={"request": self.request}
+            ).data,
             message="Song added to playlist successfully",
             status=status.HTTP_200_OK,
         )
@@ -327,7 +343,9 @@ class ArtistView(APIView):
             )
 
             return formatted_response(
-                data=ArtistSongModelSerializer(artist_obj).data,
+                data=ArtistSongModelSerializer(
+                    artist_obj, context={"request": self.request}
+                ).data,
                 message="Artist fetched successfully",
                 status=status.HTTP_200_OK,
             )
@@ -335,7 +353,9 @@ class ArtistView(APIView):
         artist_objs = Artist.objects.filter(created_by=user_obj)
 
         return formatted_response(
-            data=ArtistModelSerializer(artist_objs, many=True).data,
+            data=ArtistModelSerializer(
+                artist_objs, many=True, context={"request": self.request}
+            ).data,
             message="Artists fetched successfully",
             status=status.HTTP_200_OK,
         )
@@ -362,7 +382,9 @@ class AlbumView(APIView):
             )
 
             return formatted_response(
-                data=AlbumSongModelSerializer(album_obj).data,
+                data=AlbumSongModelSerializer(
+                    album_obj, context={"request": self.request}
+                ).data,
                 message="Album fetched successfully",
                 status=status.HTTP_200_OK,
             )
@@ -370,7 +392,9 @@ class AlbumView(APIView):
         album_objs = Album.objects.filter(created_by=user_obj)
 
         return formatted_response(
-            data=AlbumModelSerializer(album_objs, many=True).data,
+            data=AlbumModelSerializer(
+                album_objs, many=True, context={"request": self.request}
+            ).data,
             message="Albums fetched successfully",
             status=status.HTTP_200_OK,
         )

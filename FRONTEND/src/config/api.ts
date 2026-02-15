@@ -5,10 +5,6 @@ export const API_BASE_URL = isDev
   ? "http://localhost:8000/api"
   : "/api";
 
-export const IMAGE_BASE_URL = isDev
-  ? "http://localhost:8000"
-  : "";
-
 // Endpoints
 export const ENDPOINTS = {
   // Auth

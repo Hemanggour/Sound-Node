@@ -67,6 +67,8 @@ class Song(models.Model):
         User, on_delete=models.CASCADE, related_name="uploadedSongs"
     )
 
+    is_upload_complete = models.BooleanField(default=False)
+
     is_public = models.BooleanField(default=False)
     thumbnail = models.ImageField(upload_to="thumbnails/", null=True, blank=True)
 

@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
-import { IMAGE_BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 function ScrollingText({ text, className }: { text: string; className?: string }) {
@@ -70,7 +69,7 @@ export function AudioPlayer() {
                 <div className="player-cover">
                     {currentSong.thumbnail ? (
                         <img
-                            src={`${IMAGE_BASE_URL}${currentSong.thumbnail}`}
+                            src={`${currentSong.thumbnail}`}
                             alt={currentSong.title}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />

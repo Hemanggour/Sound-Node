@@ -96,6 +96,7 @@ def upload_song(file, user):
                 mime_type=metadata["mime_type"],
                 uploaded_by=user,
                 is_uploaded_to_cloud=is_uploaded_to_cloud,
+                is_upload_complete=True,
                 thumbnail=thumbnail_path,
             )
 

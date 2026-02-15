@@ -4,7 +4,6 @@ import artistService from '../services/artistService';
 import { usePlayer } from '../context/PlayerContext';
 import { SearchBar } from '../components/SearchBar';
 import type { ArtistDetail, Song } from '../types';
-import { IMAGE_BASE_URL } from '../config/api';
 
 export function ArtistDetailPage() {
     const { artistUuid } = useParams<{ artistUuid: string }>();
@@ -211,7 +210,7 @@ export function ArtistDetailPage() {
                                         <div className="song-cover">
                                             {song.thumbnail ? (
                                                 <img
-                                                    src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                                                    src={`${song.thumbnail}`}
                                                     alt={song.title}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />

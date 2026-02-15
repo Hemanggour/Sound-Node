@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from music.models import Album, Artist, Playlist, PlaylistSong, Song
@@ -24,6 +25,20 @@ class SongModelSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return super().create(validated_data)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if request:
+            if instance.thumbnail:
+                representation["thumbnail"] = request.build_absolute_uri(
+                    instance.thumbnail.url
+                )
+            if instance.file:
+                representation["file"] = request.build_absolute_uri(instance.file.url)
+
+        return representation
 
 
 class PlaylistSongModelSerializer(serializers.ModelSerializer):
@@ -61,7 +76,13 @@ class PlaylistModelSerializer(serializers.ModelSerializer):
 
     def get_songs(self, obj):
         return PlaylistSongModelSerializer(
-            PlaylistSong.objects.filter(playlist=obj), many=True
+            PlaylistSong.objects.filter(
+                playlist=obj,
+                song__is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+                song__is_upload_complete=True,
+            ).order_by("order"),
+            many=True,
+            context=self.context,
         ).data
 
 
@@ -99,7 +120,15 @@ class ArtistSongModelSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def get_songs(self, obj):
-        return SongModelSerializer(Song.objects.filter(artist=obj), many=True).data
+        return SongModelSerializer(
+            Song.objects.filter(
+                artist=obj,
+                is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+                is_upload_complete=True,
+            ),
+            many=True,
+            context=self.context,
+        ).data
 
 
 class AlbumModelSerializer(serializers.ModelSerializer):
@@ -126,6 +155,17 @@ class AlbumModelSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return super().create(validated_data)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if request and instance.cover_image:
+            representation["cover_image"] = request.build_absolute_uri(
+                instance.cover_image.url
+            )
+
+        return representation
 
 
 class AlbumSongModelSerializer(serializers.ModelSerializer):
@@ -156,5 +196,24 @@ class AlbumSongModelSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return super().create(validated_data)
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if request and instance.cover_image:
+            representation["cover_image"] = request.build_absolute_uri(
+                instance.cover_image.url
+            )
+
+        return representation
+
     def get_songs(self, obj):
-        return SongModelSerializer(Song.objects.filter(album=obj), many=True).data
+        return SongModelSerializer(
+            Song.objects.filter(
+                album=obj,
+                is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+                is_upload_complete=True,
+            ),
+            many=True,
+            context=self.context,
+        ).data

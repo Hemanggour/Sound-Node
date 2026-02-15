@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Song } from '../types';
-import { IMAGE_BASE_URL } from '../config/api';
 import { usePlayer } from '../context/PlayerContext';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 
@@ -101,7 +100,7 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
                 <div className="song-cover">
                     {song.thumbnail ? (
                         <img
-                            src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                            src={`${song.thumbnail}`}
                             alt={song.title}
                             className="song-thumbnail-img"
                         />

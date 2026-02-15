@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { IMAGE_BASE_URL } from '../config/api';
 import type { Album } from '../types';
 
 interface AlbumCardProps {
@@ -13,7 +12,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
                 <div className="playlist-icon-small" style={{ overflow: 'hidden' }}>
                     {album.cover_image ? (
                         <img
-                            src={`${IMAGE_BASE_URL}${album.cover_image}`}
+                            src={`${album.cover_image}`}
                             alt={album.title}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />

@@ -5,7 +5,6 @@ import { PlaylistModal } from '../components/PlaylistModal';
 import { SearchBar } from '../components/SearchBar';
 import { usePlayer } from '../context/PlayerContext';
 import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
-import { IMAGE_BASE_URL } from '../config/api';
 
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();
@@ -284,7 +283,7 @@ export function PlaylistDetailPage() {
                                         <div className="song-cover">
                                             {song.thumbnail ? (
                                                 <img
-                                                    src={`${IMAGE_BASE_URL}${song.thumbnail}`}
+                                                    src={`${song.thumbnail}`}
                                                     alt={song.title}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />

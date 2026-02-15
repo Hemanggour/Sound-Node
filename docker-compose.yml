@@ -15,7 +15,6 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio
     restart: always
 
     ports:

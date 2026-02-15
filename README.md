@@ -23,6 +23,27 @@ Sound-Node/
 
 ---
 
+## ✨ Key Features
+
+- **Advanced Music Management**:
+  - **Artists**: Dedicated profiles with comprehensive discography views.
+  - **Albums**: Rich album details with tracklists and cover art.
+  - **Playlists**: Create and manage custom playlists.
+
+- **Multi-Storage Support**:
+  - **Flexible Backend**: Seamless switching between **Local FileSystem** storage and **S3-compatible** object storage (e.g., AWS S3, MinIO).
+  - **Configurable**: Easily toggle storage backends via environment variables (`STORAGE_BACKEND=local` or `s3`) to suit development or production needs.
+
+- **Audio Streaming**:
+  - **Format Support**: Upload and stream various audio formats.
+  - **Optimized Playback**: Chunked streaming for smooth playback performance.
+
+- **Secure & Scalable**:
+  - **Authentication**: JWT-based secure access.
+  - **Containerized**: Fully Dockerized for easy deployment and scaling.
+
+---
+
 ## 🚀 Getting Started (Docker)
 
 The easiest way to get the entire platform running is using Docker.

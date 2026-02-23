@@ -33,11 +33,6 @@ export class UploadQueueManager {
         const addedFiles: QueuedFile[] = [];
 
         for (const file of files) {
-            if (this.queue.size >= 20) {
-                console.warn('Queue is full (max 20 files)');
-                break;
-            }
-
             const id = `${file.name}-${Date.now()}-${Math.random()}`;
             const queuedFile: QueuedFile = {
                 id,
@@ -50,7 +45,6 @@ export class UploadQueueManager {
             addedFiles.push(queuedFile);
         }
 
-        this.processQueue();
         return addedFiles;
     }
 
@@ -66,6 +60,13 @@ export class UploadQueueManager {
      */
     getFilesByState(state: UploadState): QueuedFile[] {
         return Array.from(this.queue.values()).filter((f) => f.state === state);
+    }
+
+    /**
+     * Start processing the queue (call after user confirms)
+     */
+    startProcessing(): void {
+        this.processQueue();
     }
 
     /**

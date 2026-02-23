@@ -7,6 +7,8 @@ export function UploadPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState('');
     const [allCompleted, setAllCompleted] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queueRef = useRef(new UploadQueueManager(3));
     const navigate = useNavigate();
@@ -69,7 +71,8 @@ export function UploadPage() {
         }
 
         if (validFiles.length > 0) {
-            queueRef.current.addFiles(validFiles);
+            setPendingFiles(validFiles);
+            setShowConfirmModal(true);
         }
     };
 
@@ -83,7 +86,8 @@ export function UploadPage() {
         }
 
         if (validFiles.length > 0) {
-            queueRef.current.addFiles(validFiles);
+            setPendingFiles(validFiles);
+            setShowConfirmModal(true);
         }
 
         // Reset input so same file can be selected again
@@ -111,6 +115,18 @@ export function UploadPage() {
         setQueuedFiles([...queueRef.current.getAllFiles()]);
         setAllCompleted(false);
         setError('');
+    };
+
+    const confirmUpload = () => {
+        queueRef.current.addFiles(pendingFiles);
+        queueRef.current.startProcessing();
+        setShowConfirmModal(false);
+        setPendingFiles([]);
+    };
+
+    const cancelUpload = () => {
+        setShowConfirmModal(false);
+        setPendingFiles([]);
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -181,7 +197,7 @@ export function UploadPage() {
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
-                            onClick={() => queuedFiles.length < 20 && !hasUploading && fileInputRef.current?.click()}
+                            onClick={() => !showConfirmModal && fileInputRef.current?.click()}
                         >
                             <input
                                 ref={fileInputRef}
@@ -198,8 +214,7 @@ export function UploadPage() {
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <p>
-                                        {queuedFiles.length} file{queuedFiles.length !== 1 ? 's' : ''} selected
-                                        {queuedFiles.length < 20 ? ' (click to add more, max 20)' : ' (max reached)'}
+                                        {queuedFiles.length} file{queuedFiles.length !== 1 ? 's' : ''} selected (click to add more)
                                     </p>
                                 </div>
                             ) : (
@@ -211,10 +226,64 @@ export function UploadPage() {
                                     </div>
                                     <h3>Drag and drop your audio files</h3>
                                     <p>or click to browse</p>
-                                    <span className="file-types">MP3, WAV, OGG, FLAC, AAC (max 50MB each, up to 20 files)</span>
+                                    <span className="file-types">MP3, WAV, OGG, FLAC, AAC (max 50MB each)</span>
                                 </div>
                             )}
                         </div>
+
+                        {error && <div className="error-message">{error}</div>}
+
+                        {/* Confirmation Modal */}
+                        {showConfirmModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h3>Confirm Upload</h3>
+                                        <button className="modal-close" onClick={cancelUpload}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <p>You are about to upload:</p>
+                                        <div className="file-count-display">
+                                            <span className="count-number">{pendingFiles.length}</span>
+                                            <span className="count-label">file{pendingFiles.length !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <div className="file-list-preview">
+                                            {pendingFiles.slice(0, 5).map((file, idx) => (
+                                                <div key={idx} className="file-item-preview">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '16px', height: '16px' }}>
+                                                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                                    </svg>
+                                                    <span>{file.name}</span>
+                                                    <span className="file-size">{formatFileSize(file.size)}</span>
+                                                </div>
+                                            ))}
+                                            {pendingFiles.length > 5 && (
+                                                <div className="file-item-preview">
+                                                    <span>... and {pendingFiles.length - 5} more file{pendingFiles.length - 5 !== 1 ? 's' : ''}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="modal-info">These files will upload with a maximum of 3 concurrent uploads.</p>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button className="btn btn-ghost" onClick={cancelUpload}>
+                                            Cancel
+                                        </button>
+                                        <button className="btn btn-primary" onClick={confirmUpload}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
+                                            </svg>
+                                            Upload
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {error && <div className="error-message">{error}</div>}
 

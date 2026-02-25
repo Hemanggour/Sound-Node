@@ -7,7 +7,7 @@ from django.core.files.storage import default_storage
 from django.db import transaction
 
 from music.models import Album, Artist, Song
-from music.services.metadata_service import extract_metadata
+from music.services.metadata_service import extract_metadata, strip_metadata
 from music.services.storage_service import move_to_final, save_temp_file
 from music.services.thumbnail_service import create_thumbnail
 
@@ -17,11 +17,14 @@ def upload_song(file, user):
     temp_path = save_temp_file(file)
 
     try:
-        # 2. Extract metadata
-        # For S3 storage, we need to download the file to a local temp location
-        # because mutagen requires a local file path
+        # 2. Extract metadata and strip metadata
         if settings.STORAGE_BACKEND == "s3":
-            # Download from S3 to temporary local file
+            # For S3 storage:
+            # 1. Download from S3 to temporary local file
+            # 2. Extract and strip metadata from local file
+            # 3. Upload the stripped file back to S3 temp location
+            # 4. Move to final location
+
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=os.path.splitext(file.name)[1]
             ) as tmp_file:
@@ -30,14 +33,24 @@ def upload_song(file, user):
                     tmp_file.write(s3_file.read())
 
             try:
+                # Extract metadata from the local file
                 metadata = extract_metadata(local_temp_path)
+
+                # Strip metadata from the local file
+                strip_metadata(local_temp_path)
+
+                # Upload the stripped file back to S3 temp location (overwrite)
+                with open(local_temp_path, "rb") as stripped_file:
+                    default_storage.save(temp_path, stripped_file)
             finally:
                 # Clean up the local temp file
                 if os.path.exists(local_temp_path):
                     os.unlink(local_temp_path)
         else:
-            # For local storage, use the path directly
-            metadata = extract_metadata(default_storage.path(temp_path))
+            # For local storage, strip metadata directly on the temp file
+            temp_path_full = default_storage.path(temp_path)
+            metadata = extract_metadata(temp_path_full)
+            strip_metadata(temp_path_full)
 
         title = metadata.get("title") or os.path.splitext(file.name)[0]
         artist_name = metadata.get("artist") or "Unknown Artist"
@@ -71,7 +84,7 @@ def upload_song(file, user):
         ext = os.path.splitext(file.name)[1]
         final_path = f"songs/{song_uuid}{ext}"
 
-        # 7. Move file to permanent storage
+        # 7. Move file (now with metadata stripped) to permanent storage
         move_to_final(temp_path, final_path)
 
         # 7.5 Create thumbnail if art exists

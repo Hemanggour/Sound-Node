@@ -125,7 +125,22 @@ export class UploadQueueManager {
                 }
             } catch (err) {
                 pendingFile.state = 'failed';
-                pendingFile.error = err instanceof Error ? err.message : 'Upload failed';
+                
+                // Extract error message from different error sources
+                if (err instanceof Error) {
+                    pendingFile.error = err.message;
+                } else if (typeof err === 'object' && err !== null && 'response' in err) {
+                    const axiosError = err as any;
+                    const errorMessage = 
+                        axiosError.response?.data?.message?.error || 
+                        axiosError.response?.data?.error ||
+                        axiosError.message ||
+                        'Upload failed';
+                    pendingFile.error = errorMessage;
+                } else {
+                    pendingFile.error = 'Upload failed';
+                }
+                
                 pendingFile.progress = 0;
             } finally {
                 this.activeUploads.delete(pendingFile.id);

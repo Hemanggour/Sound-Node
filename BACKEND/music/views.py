@@ -83,13 +83,19 @@ class SongView(APIView):
 
         user_obj = self.request.user
 
-        song = upload_song(file=file, user=user_obj)
+        try:
+            song = upload_song(file=file, user=user_obj)
 
-        return formatted_response(
-            data=SongModelSerializer(song, context={"request": self.request}).data,
-            message="Song uploaded successfully",
-            status=status.HTTP_201_CREATED,
-        )
+            return formatted_response(
+                data=SongModelSerializer(song, context={"request": self.request}).data,
+                message="Song uploaded successfully",
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            return formatted_response(
+                message={"error": f"Upload failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def delete(self, *args, **kwargs):
         kwargs_serializer = self.SongKwargsSerializer(data=self.kwargs)

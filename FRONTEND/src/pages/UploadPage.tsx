@@ -1,18 +1,40 @@
-import { useState, useRef, type DragEvent, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type DragEvent, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import musicService from '../services/musicService';
+import UploadQueueManager, { type QueuedFile } from '../services/uploadQueueManager';
 
 export function UploadPage() {
-    const [file, setFile] = useState<File | null>(null);
+    const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
     const [isDragging, setIsDragging] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [allCompleted, setAllCompleted] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const queueRef = useRef(new UploadQueueManager(3));
     const navigate = useNavigate();
 
     const acceptedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/aac'];
+
+    // Subscribe to queue updates
+    useEffect(() => {
+        const unsubscribeProgress = queueRef.current.onProgress((files) => {
+            setQueuedFiles([...files]);
+        });
+
+        const unsubscribeComplete = queueRef.current.onComplete((files) => {
+            setQueuedFiles([...files]);
+            setAllCompleted(true);
+            // Redirect after 3 seconds if all uploads completed without failures
+            if (files.every((f) => f.state === 'completed')) {
+                setTimeout(() => navigate('/'), 3000);
+            }
+        });
+
+        return () => {
+            unsubscribeProgress();
+            unsubscribeComplete();
+        };
+    }, [navigate]);
 
     const validateFile = (file: File): boolean => {
         if (!acceptedTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|ogg|flac|aac)$/i)) {
@@ -41,51 +63,70 @@ export function UploadPage() {
         setIsDragging(false);
         setError('');
 
-        const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile && validateFile(droppedFile)) {
-            setFile(droppedFile);
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        const validFiles = droppedFiles.filter(validateFile);
+
+        if (validFiles.length === 0 && droppedFiles.length > 0) {
+            return; // Error already set by validateFile
+        }
+
+        if (validFiles.length > 0) {
+            setPendingFiles(validFiles);
+            setShowConfirmModal(true);
         }
     };
 
     const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
         setError('');
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile && validateFile(selectedFile)) {
-            setFile(selectedFile);
+        const selectedFiles = Array.from(e.target.files || []);
+        const validFiles = selectedFiles.filter(validateFile);
+
+        if (validFiles.length === 0 && selectedFiles.length > 0) {
+            return; // Error already set by validateFile
         }
+
+        if (validFiles.length > 0) {
+            setPendingFiles(validFiles);
+            setShowConfirmModal(true);
+        }
+
+        // Reset input so same file can be selected again
+        e.target.value = '';
     };
 
-    const handleUpload = async () => {
-        if (!file) return;
+    const handleRemoveFile = (fileId: string) => {
+        queueRef.current.removeFile(fileId);
+        setQueuedFiles([...queueRef.current.getAllFiles()]);
+    };
 
-        setIsUploading(true);
+    const handleRetryFile = (fileId: string) => {
+        queueRef.current.retryFile(fileId);
+        setQueuedFiles([...queueRef.current.getAllFiles()]);
+    };
+
+    const handleRetryAllFailed = () => {
+        queueRef.current.retryAllFailed();
+        setQueuedFiles([...queueRef.current.getAllFiles()]);
+        setAllCompleted(false);
+    };
+
+    const handleClearQueue = () => {
+        queueRef.current.clearQueue();
+        setQueuedFiles([...queueRef.current.getAllFiles()]);
+        setAllCompleted(false);
         setError('');
-        setUploadProgress(0);
+    };
 
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-            setUploadProgress((prev) => Math.min(prev + 10, 90));
-        }, 200);
+    const confirmUpload = () => {
+        queueRef.current.addFiles(pendingFiles);
+        queueRef.current.startProcessing();
+        setShowConfirmModal(false);
+        setPendingFiles([]);
+    };
 
-        try {
-            const response = await musicService.uploadSong(file);
-            clearInterval(progressInterval);
-            setUploadProgress(100);
-
-            if (response.status === 201) {
-                setSuccess(`"${response.data.title}" uploaded successfully!`);
-                setFile(null);
-                setTimeout(() => navigate('/'), 2000);
-            } else {
-                throw new Error(response.message?.error || 'Upload failed');
-            }
-        } catch (err) {
-            clearInterval(progressInterval);
-            setError(err instanceof Error ? err.message : 'Upload failed');
-            setUploadProgress(0);
-        } finally {
-            setIsUploading(false);
-        }
+    const cancelUpload = () => {
+        setShowConfirmModal(false);
+        setPendingFiles([]);
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -93,6 +134,41 @@ export function UploadPage() {
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
+
+    const getStateIcon = (state: string) => {
+        switch (state) {
+            case 'pending':
+                return (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="icon-pending">
+                        <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                    </svg>
+                );
+            case 'uploading':
+                return (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="icon-uploading">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                );
+            case 'completed':
+                return (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="icon-completed">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                );
+            case 'failed':
+                return (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="icon-failed">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                    </svg>
+                );
+            default:
+                return null;
+        }
+    };
+
+    const stats = queueRef.current.getStats();
+    const hasUploading = stats.uploading > 0;
+    const hasFailed = stats.failed > 0;
 
     return (
         <div className="page upload-page">
@@ -102,7 +178,7 @@ export function UploadPage() {
             </header>
 
             <div className="upload-container">
-                {success ? (
+                {allCompleted && stats.failed === 0 ? (
                     <div className="upload-success">
                         <div className="success-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -110,98 +186,214 @@ export function UploadPage() {
                                 <polyline points="22,4 12,14.01 9,11.01" />
                             </svg>
                         </div>
-                        <h2>{success}</h2>
+                        <h2>All files uploaded successfully!</h2>
                         <p>Redirecting to home...</p>
                     </div>
                 ) : (
                     <>
+                        {/* Dropzone */}
                         <div
-                            className={`upload-dropzone ${isDragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
+                            className={`upload-dropzone ${isDragging ? 'dragging' : ''} ${queuedFiles.length > 0 ? 'has-files' : ''}`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => !showConfirmModal && fileInputRef.current?.click()}
                         >
                             <input
                                 ref={fileInputRef}
                                 type="file"
                                 accept="audio/*"
+                                multiple
                                 onChange={handleFileSelect}
                                 hidden
                             />
 
-                            {file ? (
-                                <div className="file-preview">
-                                    <div className="file-icon">
-                                        <svg viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                                        </svg>
-                                    </div>
-                                    <div className="file-info">
-                                        <h3>{file.name}</h3>
-                                        <p>{formatFileSize(file.size)}</p>
-                                    </div>
-                                    <button
-                                        className="btn btn-ghost remove-file"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFile(null);
-                                        }}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                        </svg>
-                                    </button>
+                            {queuedFiles.length > 0 ? (
+                                <div className="dropzone-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '32px', height: '32px' }}>
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                    <p>
+                                        {queuedFiles.length} file{queuedFiles.length !== 1 ? 's' : ''} selected (click to add more)
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="dropzone-content">
                                     <div className="dropzone-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                            <polyline points="17,8 12,3 7,8" />
-                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
                                         </svg>
                                     </div>
-                                    <h3>Drag and drop your audio file</h3>
+                                    <h3>Drag and drop your audio files</h3>
                                     <p>or click to browse</p>
-                                    <span className="file-types">MP3, WAV, OGG, FLAC, AAC (max 50MB)</span>
+                                    <span className="file-types">MP3, WAV, OGG, FLAC, AAC (max 50MB each)</span>
                                 </div>
                             )}
                         </div>
 
                         {error && <div className="error-message">{error}</div>}
 
-                        {isUploading && (
-                            <div className="upload-progress">
-                                <div className="progress-bar-upload">
-                                    <div className="progress-fill" style={{ width: `${uploadProgress}%` }}></div>
+                        {/* Confirmation Modal */}
+                        {showConfirmModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h3>Confirm Upload</h3>
+                                        <button className="modal-close" onClick={cancelUpload}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <p>You are about to upload:</p>
+                                        <div className="file-count-display">
+                                            <span className="count-number">{pendingFiles.length}</span>
+                                            <span className="count-label">file{pendingFiles.length !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <div className="file-list-preview">
+                                            {pendingFiles.slice(0, 5).map((file, idx) => (
+                                                <div key={idx} className="file-item-preview">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '16px', height: '16px' }}>
+                                                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                                    </svg>
+                                                    <span>{file.name}</span>
+                                                    <span className="file-size">{formatFileSize(file.size)}</span>
+                                                </div>
+                                            ))}
+                                            {pendingFiles.length > 5 && (
+                                                <div className="file-item-preview">
+                                                    <span>... and {pendingFiles.length - 5} more file{pendingFiles.length - 5 !== 1 ? 's' : ''}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="modal-info">These files will upload with a maximum of 3 concurrent uploads.</p>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button className="btn btn-ghost" onClick={cancelUpload}>
+                                            Cancel
+                                        </button>
+                                        <button className="btn btn-primary" onClick={confirmUpload}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17,8 12,3 7,8" /><line x1="12" y1="3" x2="12" y2="15" />
+                                            </svg>
+                                            Upload
+                                        </button>
+                                    </div>
                                 </div>
-                                <span>{uploadProgress}%</span>
                             </div>
                         )}
 
-                        <button
-                            className="btn btn-primary btn-full"
-                            onClick={handleUpload}
-                            disabled={!file || isUploading}
-                        >
-                            {isUploading ? (
-                                <>
-                                    <span className="loader-small"></span>
-                                    Uploading...
-                                </>
-                            ) : (
-                                <>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="17,8 12,3 7,8" />
-                                        <line x1="12" y1="3" x2="12" y2="15" />
-                                    </svg>
-                                    Upload Song
-                                </>
-                            )}
-                        </button>
+                        {error && <div className="error-message">{error}</div>}
+
+                        {/* Queue Statistics */}
+                        {queuedFiles.length > 0 && (
+                            <div className="queue-stats">
+                                <div className="stat-item">
+                                    <span className="stat-label">Total:</span>
+                                    <span className="stat-value">{stats.total}</span>
+                                </div>
+                                {stats.uploading > 0 && (
+                                    <div className="stat-item uploading">
+                                        <span className="stat-label">Uploading:</span>
+                                        <span className="stat-value">{stats.uploading}</span>
+                                    </div>
+                                )}
+                                {stats.pending > 0 && (
+                                    <div className="stat-item pending">
+                                        <span className="stat-label">Queued:</span>
+                                        <span className="stat-value">{stats.pending}</span>
+                                    </div>
+                                )}
+                                {stats.completed > 0 && (
+                                    <div className="stat-item completed">
+                                        <span className="stat-label">Completed:</span>
+                                        <span className="stat-value">{stats.completed}</span>
+                                    </div>
+                                )}
+                                {stats.failed > 0 && (
+                                    <div className="stat-item failed">
+                                        <span className="stat-label">Failed:</span>
+                                        <span className="stat-value">{stats.failed}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Queue List */}
+                        {queuedFiles.length > 0 && (
+                            <div className="queue-list">
+                                {queuedFiles.map((queuedFile) => (
+                                    <div key={queuedFile.id} className={`queue-item queue-item-${queuedFile.state}`}>
+                                        <div className="item-icon">{getStateIcon(queuedFile.state)}</div>
+
+                                        <div className="item-content">
+                                            <div className="item-header">
+                                                <h4>{queuedFile.file.name}</h4>
+                                                <span className="item-size">{formatFileSize(queuedFile.file.size)}</span>
+                                            </div>
+
+                                            {queuedFile.state === 'completed' && queuedFile.result && (
+                                                <p className="item-title">{queuedFile.result.title}</p>
+                                            )}
+
+                                            {queuedFile.state === 'failed' && queuedFile.error && (
+                                                <p className="item-error">{queuedFile.error}</p>
+                                            )}
+
+                                            {(queuedFile.state === 'uploading' || queuedFile.state === 'pending') && (
+                                                <div className="progress-bar-small">
+                                                    <div className="progress-fill" style={{ width: `${queuedFile.progress}%` }}></div>
+                                                </div>
+                                            )}
+
+                                            {queuedFile.state === 'uploading' && (
+                                                <p className="item-status">{queuedFile.progress}% uploaded</p>
+                                            )}
+
+                                            {queuedFile.state === 'pending' && (
+                                                <p className="item-status">Waiting in queue...</p>
+                                            )}
+
+                                            {queuedFile.state === 'completed' && (
+                                                <p className="item-status success">Upload complete</p>
+                                            )}
+                                        </div>
+
+                                        <div className="item-actions">
+                                            {queuedFile.state === 'failed' && (
+                                                <button className="btn btn-small btn-secondary" onClick={() => handleRetryFile(queuedFile.id)}>
+                                                    Retry
+                                                </button>
+                                            )}
+                                            {queuedFile.state === 'pending' && (
+                                                <button className="btn btn-small btn-ghost" onClick={() => handleRemoveFile(queuedFile.id)}>
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        {queuedFiles.length > 0 && (
+                            <div className="upload-actions">
+                                {hasFailed && (
+                                    <button className="btn btn-secondary" onClick={handleRetryAllFailed}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M1 4v6h6M23 20v-6h-6" /><path d="M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 18.36 18.36" />
+                                        </svg>
+                                        Retry Failed
+                                    </button>
+                                )}
+                                <button className="btn btn-ghost" onClick={handleClearQueue} disabled={hasUploading}>
+                                    Clear Queue
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

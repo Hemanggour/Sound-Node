@@ -233,7 +233,13 @@ elif STORAGE_BACKEND == "s3":
     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 
     AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
+
+    # AWS_S3_ENDPOINT_URL: Internal endpoint for backend services (Docker container-to-container)
+    # Example: http://minio:9000 (used by Django storage for uploads and internal operations)
     AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", None)
+
+    # AWS_S3_PUBLIC_ENDPOINT_URL: Public endpoint for browser access (localhost or external domain)
+    # Example: http://localhost:9000 (used for presigned URLs that browsers download from)
     AWS_S3_PUBLIC_ENDPOINT_URL = os.getenv("AWS_S3_PUBLIC_ENDPOINT_URL", None)
 
     AWS_QUERYSTRING_AUTH = True

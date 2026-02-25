@@ -1,9 +1,5 @@
 // API Configuration
-const isDev = import.meta.env.MODE === "development";
-
-export const API_BASE_URL = isDev
-  ? "http://localhost:8000/api"
-  : "/api";
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "/api";
 
 // Endpoints
 export const ENDPOINTS = {

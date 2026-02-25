@@ -3,6 +3,12 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Accept backend URL as build argument
+ARG VITE_BACKEND_URL
+
+# Set as environment variable for build process
+ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
+
 # Copy package files first (for caching)
 COPY package*.json ./
 

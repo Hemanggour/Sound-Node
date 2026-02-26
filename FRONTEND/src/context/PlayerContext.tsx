@@ -66,6 +66,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const blobUrlRef = useRef<string | null>(null);
     const currentPlaylistRef = useRef<Song[]>([]);
     const currentIndexRef = useRef<number>(-1);
+    const mediaSessionHandlersRef = useRef<Array<() => void>>([]);
 
     // Cleanup function for audio resources
     const cleanupAudio = () => {
@@ -92,17 +93,283 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // Persist Settings
+    // Setup Media Session API for system media controls
+    const setupMediaSession = (song: Song) => {
+        if (!('mediaSession' in navigator)) {
+            return; // Media Session API not supported
+        }
+
+        try {
+            // Build artwork array for better OS support
+            const artwork: MediaImage[] = [];
+            if (song.thumbnail) {
+                artwork.push({
+                    src: song.thumbnail,
+                    sizes: '256x256',
+                    type: 'image/jpeg'
+                });
+            }
+
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: song.title,
+                artist: song.artist_name || 'Unknown Artist',
+                album: song.album || 'Unknown Album',
+                artwork
+            });
+
+            navigator.mediaSession.playbackState = 'none'; // Will be updated by play/pause
+        } catch (error) {
+            console.warn('Failed to setup Media Session metadata:', error);
+        }
+    };
+
+    // Helper to safely resume audio playback and handle audio context suspension
+    const resumeAudioPlayback = () => {
+        if (audioRef.current) {
+            const playPromise = audioRef.current.play();
+            if (playPromise) {
+                playPromise.catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.warn('Error resuming playback:', error.message);
+                    }
+                });
+            }
+        }
+    };
+
+    // Helper to load and play a song immediately (used by media session handlers)
+    const playSongImmediate = async (song: Song) => {
+        if (!audioRef.current) return;
+
+        cleanupAudio();
+
+        try {
+            const streamUrl = musicService.getStreamUrl(song.song_uuid);
+            const response = await fetch(streamUrl, {
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch audio stream:', response.status);
+                return;
+            }
+
+            const contentType = response.headers.get('content-type');
+            let audioSrc = streamUrl;
+
+            if (contentType?.includes('application/json')) {
+                const data = await response.json();
+                audioSrc = data.url;
+            }
+
+            if (audioRef.current) {
+                audioRef.current.src = audioSrc;
+                audioRef.current.volume = volume;
+
+                // Play immediately - critical for background media key presses
+                resumeAudioPlayback();
+                setCurrentSong(song);
+                setIsPlaying(true);
+                setupMediaSession(song);
+
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'playing';
+                }
+            }
+        } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
+                console.error('Error in playSongImmediate:', error.message);
+            }
+        }
+    };
+
+    // Setup Media Session action handlers for OS media controls
+    const setupMediaSessionHandlers = () => {
+        if (!('mediaSession' in navigator)) {
+            return; // Media Session API not supported
+        }
+
+        // Clean up any existing handlers
+        const cleanupHandlers = () => {
+            mediaSessionHandlersRef.current.forEach(cleanup => cleanup());
+            mediaSessionHandlersRef.current = [];
+        };
+
+        cleanupHandlers();
+
+        try {
+            // Play handler - must work even when browser is not in focus
+            const playHandler = () => {
+                resumeAudioPlayback();
+                setIsPlaying(true);
+                navigator.mediaSession.playbackState = 'playing';
+            };
+
+            navigator.mediaSession.setActionHandler('play', playHandler);
+            mediaSessionHandlersRef.current.push(() => 
+                navigator.mediaSession?.setActionHandler('play', null)
+            );
+
+            // Pause handler
+            const pauseHandler = () => {
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    setIsPlaying(false);
+                    navigator.mediaSession.playbackState = 'paused';
+                }
+            };
+
+            navigator.mediaSession.setActionHandler('pause', pauseHandler);
+            mediaSessionHandlersRef.current.push(() => 
+                navigator.mediaSession?.setActionHandler('pause', null)
+            );
+
+            // Next track handler - CRITICAL: must work in background without requestAnimationFrame
+            const nextTrackHandler = async () => {
+                const playlist = currentPlaylistRef.current;
+                const currentIdx = currentIndexRef.current;
+
+                if (playlist.length > 0) {
+                    let nextIndex = currentIdx + 1;
+                    if (nextIndex >= playlist.length) {
+                        if (repeatMode === 'all') {
+                            nextIndex = 0;
+                        } else {
+                            return; // Don't wrap if not in repeat all mode
+                        }
+                    }
+
+                    // Update index via state setter
+                    setCurrentIndex(nextIndex);
+                    currentIndexRef.current = nextIndex;
+
+                    // Play the next song immediately without requestAnimationFrame
+                    const nextSong = playlist[nextIndex];
+                    await playSongImmediate(nextSong);
+                }
+            };
+
+            navigator.mediaSession.setActionHandler('nexttrack', nextTrackHandler);
+            mediaSessionHandlersRef.current.push(() => 
+                navigator.mediaSession?.setActionHandler('nexttrack', null)
+            );
+
+            // Previous track handler - CRITICAL: must work in background without requestAnimationFrame
+            const previousTrackHandler = async () => {
+                const playlist = currentPlaylistRef.current;
+                const currentIdx = currentIndexRef.current;
+
+                if (playlist.length > 0) {
+                    let prevIndex = currentIdx - 1;
+                    if (prevIndex < 0) {
+                        if (repeatMode === 'all') {
+                            prevIndex = playlist.length - 1;
+                        } else {
+                            prevIndex = 0;
+                        }
+                    }
+
+                    // Update index via state setter
+                    setCurrentIndex(prevIndex);
+                    currentIndexRef.current = prevIndex;
+
+                    // Play the previous song immediately without requestAnimationFrame
+                    const prevSong = playlist[prevIndex];
+                    await playSongImmediate(prevSong);
+                }
+            };
+
+            navigator.mediaSession.setActionHandler('previoustrack', previousTrackHandler);
+            mediaSessionHandlersRef.current.push(() => 
+                navigator.mediaSession?.setActionHandler('previoustrack', null)
+            );
+
+            // Seek handler - allows seeking from OS media control progress
+            const seekToHandler = (details: MediaSessionActionDetails) => {
+                if (audioRef.current && details.seekTime !== undefined) {
+                    audioRef.current.currentTime = details.seekTime;
+                    setProgress(details.seekTime);
+                }
+            };
+
+            navigator.mediaSession.setActionHandler('seekto', seekToHandler);
+            mediaSessionHandlersRef.current.push(() => 
+                navigator.mediaSession?.setActionHandler('seekto', null)
+            );
+
+            // Seek forward handler (skip forward ~15 seconds)
+            const seekForwardHandler = () => {
+                if (audioRef.current) {
+                    const skipTime = 15; // seconds
+                    audioRef.current.currentTime = Math.min(
+                        audioRef.current.currentTime + skipTime,
+                        audioRef.current.duration
+                    );
+                }
+            };
+
+            try {
+                navigator.mediaSession.setActionHandler('seekforward', seekForwardHandler);
+                mediaSessionHandlersRef.current.push(() => 
+                    navigator.mediaSession?.setActionHandler('seekforward', null)
+                );
+            } catch {
+                // seekforward might not be supported
+            }
+
+            // Seek backward handler (skip backward ~15 seconds)
+            const seekBackwardHandler = () => {
+                if (audioRef.current) {
+                    const skipTime = 15; // seconds
+                    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - skipTime);
+                }
+            };
+
+            try {
+                navigator.mediaSession.setActionHandler('seekbackward', seekBackwardHandler);
+                mediaSessionHandlersRef.current.push(() => 
+                    navigator.mediaSession?.setActionHandler('seekbackward', null)
+                );
+            } catch {
+                // seekbackward might not be supported
+            }
+
+            // Update playback state
+            navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        } catch (error) {
+            console.warn('Failed to setup Media Session handlers:', error);
+        }
+    };
+
+    // Update Media Session playback state when playing state changes
     useEffect(() => {
-        localStorage.setItem('player_volume', volume.toString());
-        localStorage.setItem('player_repeat', repeatMode);
-        localStorage.setItem('player_shuffle', isShuffle.toString());
-    }, [volume, repeatMode, isShuffle]);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        }
+    }, [isPlaying]);
+
+    // Re-setup Media Session handlers when repeatMode changes (needed for nexttrack/previoustrack behavior)
+    useEffect(() => {
+        setupMediaSessionHandlers();
+    }, [repeatMode]);
+
+    // Reinitialize Media Session handlers when window regains focus
+    useEffect(() => {
+        const handleFocus = () => {
+            // When window regains focus, reinitialize handlers to ensure they work
+            setupMediaSessionHandlers();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
 
     // Persist Playback State
     useEffect(() => {
         if (currentSong) {
             localStorage.setItem('player_song', JSON.stringify(currentSong));
+            // Update Media Session metadata when song changes
+            setupMediaSession(currentSong);
         } else {
             localStorage.removeItem('player_song');
         }
@@ -114,6 +381,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         currentPlaylistRef.current = currentPlaylist;
         currentIndexRef.current = currentIndex;
     }, [currentSong, currentPlaylist, originalPlaylist, currentIndex]);
+
+    // Persist Settings
+    useEffect(() => {
+        localStorage.setItem('player_volume', volume.toString());
+        localStorage.setItem('player_repeat', repeatMode);
+        localStorage.setItem('player_shuffle', isShuffle.toString());
+    }, [volume, repeatMode, isShuffle]);
 
     // Restore Audio Source on Mount
     useEffect(() => {
@@ -150,9 +424,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             loadSource();
         }
 
+        // Setup Media Session on mount
+        setupMediaSessionHandlers();
+
+        // Handle visibility changes to maintain media session in background
+        const handleVisibilityChange = () => {
+            // When page becomes visible again, ensure media session is still active
+            if (!document.hidden) {
+                // Page is now visible - update media session state
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         // Cleanup on unmount
         return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             cleanupAudio();
+            // Cleanup Media Session handlers
+            mediaSessionHandlersRef.current.forEach(cleanup => cleanup());
+            mediaSessionHandlersRef.current = [];
         };
     }, []);
 
@@ -204,6 +498,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     
                     setCurrentSong(song);
                     setIsPlaying(true);
+
+                    // Update Media Session metadata and playback state
+                    setupMediaSession(song);
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
                 }
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
@@ -253,8 +553,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (audioRef.current) {
             if (isPlaying) {
                 audioRef.current.pause();
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'paused';
+                }
             } else {
-                audioRef.current.play().catch(console.error);
+                audioRef.current.play().catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error resuming playback:', error);
+                    }
+                });
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'playing';
+                }
             }
             setIsPlaying(!isPlaying);
         }
@@ -277,6 +587,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const handleTimeUpdate = () => {
         if (audioRef.current) {
             setProgress(audioRef.current.currentTime);
+            
+            // Update Media Session position state to show in OS UI
+            if ('mediaSession' in navigator && audioRef.current.duration) {
+                try {
+                    navigator.mediaSession.setPositionState({
+                        duration: audioRef.current.duration,
+                        playbackRate: audioRef.current.playbackRate,
+                        position: audioRef.current.currentTime
+                    });
+                } catch (error) {
+                    // Position state update failed - this is non-critical
+                }
+            }
         }
     };
 
@@ -307,10 +630,39 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Handle unexpected pause events (e.g., when browser suspends audio)
+    const handlePause = () => {
+        // If we expected to be playing but paused, update state
+        // This handles cases where browser pauses audio due to focus loss or other reasons
+        if (isPlaying && audioRef.current && !audioRef.current.paused === false) {
+            // Audio unexpectedly paused - update UI state to reflect reality
+            setIsPlaying(false);
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'paused';
+            }
+        }
+    };
+
+    // Handle play events to ensure isPlaying state stays in sync
+    const handlePlay = () => {
+        if (!isPlaying) {
+            setIsPlaying(true);
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
+        }
+    };
+
     const handleEnded = () => {
         if (repeatMode === 'one') {
+            // Repeat current track - restart it
             if (audioRef.current) {
-                audioRef.current.play().catch(console.error);
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error restarting track:', error);
+                    }
+                });
             }
         } else {
             // Use refs to avoid stale closure - get fresh playlist and index
@@ -324,12 +676,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     if (repeatMode === 'all') {
                         nextIndex = 0;
                     } else {
+                        // End of playlist and no repeat - stop playing
                         setIsPlaying(false);
+                        if ('mediaSession' in navigator) {
+                            navigator.mediaSession.playbackState = 'paused';
+                        }
                         return;
                     }
                 }
 
+                // Use state setters to properly update the context state
                 setCurrentIndex(nextIndex);
+                // playSong will be called synchronously before the next render
                 playSong(playlist[nextIndex]);
             }
         }
@@ -442,6 +800,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 onEnded={handleEnded}
                 onError={handleError}
                 onAbort={handleAbort}
+                onPause={handlePause}
+                onPlay={handlePlay}
             />
         </PlayerContext.Provider>
     );

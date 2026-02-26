@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Max
+from django.db.models import Exists, Max, OuterRef
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
@@ -13,13 +13,14 @@ from music.serializers import (
     AlbumSongModelSerializer,
     ArtistModelSerializer,
     ArtistSongModelSerializer,
+    PlaylistForSongSerializer,
     PlaylistModelSerializer,
     PlaylistSongModelSerializer,
     SongModelSerializer,
 )
 from music.services.streaming_service import stream_file
 from music.services.upload_service import upload_song
-from utils.response_wrapper import formatted_response
+from utils.response_wrapper import formatted_response, paginated_response
 
 # Create your views here.
 
@@ -151,14 +152,13 @@ class PlaylistView(APIView):
 
     def get(self, *args, **kwargs):
         user_obj = self.request.user
-        playlist_objs = Playlist.objects.filter(owner=user_obj)
+        playlist_objs = Playlist.objects.filter(owner=user_obj).order_by("-created_at")
 
-        return formatted_response(
-            data=PlaylistModelSerializer(
-                playlist_objs, many=True, context={"request": self.request}
-            ).data,
-            message="Playlists fetched successfully",
-            status=status.HTTP_200_OK,
+        return paginated_response(
+            queryset=playlist_objs,
+            request=self.request,
+            serializer_class=PlaylistModelSerializer,
+            context={"request": self.request},
         )
 
     def post(self, *args, **kwargs):
@@ -223,6 +223,38 @@ class PlaylistView(APIView):
         )
 
 
+class PlaylistForSongView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
+
+    class PlaylistForSongKwargsSerializer(serializers.Serializer):
+        song_uuid = serializers.UUIDField(required=True, allow_null=False)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.PlaylistForSongKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        user_obj = self.request.user
+        song_uuid = kwargs_serializer.validated_data.get("song_uuid")
+
+        playlist_song_subquery = PlaylistSong.objects.filter(
+            playlist=OuterRef("pk"), song__song_uuid=song_uuid
+        )
+
+        playlist_objs = (
+            Playlist.objects.filter(owner=user_obj)
+            .annotate(isAdded=Exists(playlist_song_subquery))
+            .order_by("-created_at")
+        )
+
+        return paginated_response(
+            queryset=playlist_objs,
+            request=self.request,
+            serializer_class=PlaylistForSongSerializer,
+            context={"request": self.request},
+        )
+
+
 class PlaylistSongView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
@@ -234,7 +266,7 @@ class PlaylistSongView(APIView):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
     class PlaylistSongDeleteSerializer(serializers.Serializer):
-        playlist_song_uuid = serializers.UUIDField(required=True, allow_null=False)
+        song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
     def get(self, *args, **kwargs):
         kwargs_serializer = self.PlaylistSongKwargsSerializer(data=self.kwargs)
@@ -310,14 +342,14 @@ class PlaylistSongView(APIView):
         delete_serializer.is_valid(raise_exception=True)
 
         playlist_uuid = kwargs_serializer.validated_data.get("playlist_uuid")
-        playlist_song_uuid = delete_serializer.validated_data.get("playlist_song_uuid")
+        song_uuid = delete_serializer.validated_data.get("song_uuid")
 
         playlist = get_object_or_404(
             Playlist, owner=self.request.user, playlist_uuid=playlist_uuid
         )
 
         playlistsong_obj = get_object_or_404(
-            PlaylistSong, playlist=playlist, playlist_song_uuid=playlist_song_uuid
+            PlaylistSong, playlist=playlist, song__song_uuid=song_uuid
         )
 
         playlistsong_obj.delete()

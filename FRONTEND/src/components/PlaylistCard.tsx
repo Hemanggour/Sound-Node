@@ -8,8 +8,6 @@ interface PlaylistCardProps {
 }
 
 export function PlaylistCard({ playlist, onEdit, onDelete }: PlaylistCardProps) {
-    const songCount = playlist.songs.length;
-
     return (
         <div className="playlist-card-list">
             <Link to={`/playlist/${playlist.playlist_uuid}`} className="playlist-card-list-link">
@@ -24,9 +22,6 @@ export function PlaylistCard({ playlist, onEdit, onDelete }: PlaylistCardProps) 
 
                 <div className="playlist-info-list">
                     <h3 className="playlist-name">{playlist.name}</h3>
-                    <p className="playlist-meta">
-                        {songCount} {songCount === 1 ? 'song' : 'songs'}
-                    </p>
                 </div>
             </Link>
 

@@ -6,13 +6,26 @@ import type {
     PlaylistSong,
     CreatePlaylistRequest,
     UpdatePlaylistRequest,
-    AddSongToPlaylistRequest
+    AddSongToPlaylistRequest,
+    PaginatedResponse
 } from '../types';
 
 export const playlistService = {
-    async getPlaylists(): Promise<ApiResponse<Playlist[]>> {
-        const response = await api.get<ApiResponse<Playlist[]>>(
-            ENDPOINTS.GET_PLAYLISTS,
+    async getPlaylists(page: number = 1): Promise<PaginatedResponse<Playlist>> {
+        const url = `${ENDPOINTS.GET_PLAYLISTS}?page=${page}`;
+
+        const response = await api.get<PaginatedResponse<Playlist>>(
+            url,
+            { withCredentials: true }
+        );
+        return response.data;
+    },
+
+    async getPlaylistsForSong(songUuid: string, page: number = 1): Promise<PaginatedResponse<Playlist>> {
+        const url = `${ENDPOINTS.GET_PLAYLISTS}song/${songUuid}/?page=${page}`;
+
+        const response = await api.get<PaginatedResponse<Playlist>>(
+            url,
             { withCredentials: true }
         );
         return response.data;
@@ -61,11 +74,11 @@ export const playlistService = {
         return response.data;
     },
 
-    async removeSongFromPlaylist(playlistUuid: string, playlistSongUuid: string): Promise<ApiResponse<null>> {
+    async removeSongFromPlaylist(playlistUuid: string, songUuid: string): Promise<ApiResponse<null>> {
         const response = await api.delete<ApiResponse<null>>(
             `${ENDPOINTS.REMOVE_SONG_FROM_PLAYLIST}${playlistUuid}/`,
             {
-                data: { playlist_song_uuid: playlistSongUuid },
+                data: { song_uuid: songUuid },
                 withCredentials: true
             }
         );

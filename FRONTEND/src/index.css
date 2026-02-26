@@ -2578,7 +2578,25 @@ a:hover {
   max-height: 300px;
   overflow-y: auto;
   margin-bottom: 16px;
+  /* Smooth scrolling for mobile */
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Custom Scrollbar for the Playlist List */
+.playlist-list::-webkit-scrollbar {
+  width: 4px;
+}
+.playlist-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.playlist-list::-webkit-scrollbar-thumb {
+  background: var(--text-muted); /* Light, subtle color */
+  border-radius: var(--radius-full);
+}
+.playlist-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
 
 .playlist-item {
   display: flex;

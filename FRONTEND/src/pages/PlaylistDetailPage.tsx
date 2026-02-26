@@ -39,11 +39,15 @@ export function PlaylistDetailPage() {
             setIsLoading(true);
             const playlistResponse = await playlistService.getPlaylists();
 
-            const foundPlaylist = playlistResponse.data.find(p => p.playlist_uuid === playlistUuid);
+            const foundPlaylist = playlistResponse.results?.find(p => p.playlist_uuid === playlistUuid);
             if (foundPlaylist) {
                 setPlaylist(foundPlaylist);
-                // Use songs from the playlist response directly instead of making a separate API call
-                setPlaylistSongs(foundPlaylist.songs);
+
+                // Fetch the songs separately since the playlist API no longer embeds them
+                const songsResponse = await playlistService.getPlaylistSongs(playlistUuid);
+                if (songsResponse && songsResponse.data) {
+                    setPlaylistSongs(songsResponse.data);
+                }
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load playlist');
@@ -76,8 +80,9 @@ export function PlaylistDetailPage() {
         if (!playlistUuid) return;
 
         try {
-            await playlistService.removeSongFromPlaylist(playlistUuid, playlistSong.playlist_song_uuid);
-            await fetchPlaylistData();
+            await playlistService.removeSongFromPlaylist(playlistUuid, playlistSong.song.song_uuid);
+            // Optimistically update local state instead of doing expensive refetching
+            setPlaylistSongs(prev => prev.filter(ps => ps.song.song_uuid !== playlistSong.song.song_uuid));
         } catch (err) {
             setError('Failed to remove song');
         }

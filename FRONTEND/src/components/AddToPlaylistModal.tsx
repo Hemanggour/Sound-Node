@@ -16,24 +16,52 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
     const [showCreateNew, setShowCreateNew] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            fetchPlaylists();
+            setPage(1);
+            fetchPlaylists(1);
         }
     }, [isOpen]);
 
-    const fetchPlaylists = async () => {
+    const fetchPlaylists = async (currentPage: number) => {
         try {
-            setIsLoading(true);
-            const response = await playlistService.getPlaylists();
-            if (response.status === 200) {
-                setPlaylists(response.data);
+            if (currentPage === 1) {
+                setIsLoading(true);
+            } else {
+                setIsLoadingMore(true);
+            }
+
+            const response = await playlistService.getPlaylistsForSong(song.song_uuid, currentPage);
+            if (response && response.results) {
+                if (currentPage === 1) {
+                    setPlaylists(response.results);
+                } else {
+                    setPlaylists(prev => {
+                        // Avoid duplicates if user adds/removes something mid-pagination
+                        const newItems = response.results.filter(
+                            newItem => !prev.some(p => p.playlist_uuid === newItem.playlist_uuid)
+                        );
+                        return [...prev, ...newItems];
+                    });
+                }
+                setHasNext(!!response.next);
+                setPage(currentPage);
             }
         } catch (err) {
             setError('Failed to load playlists');
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchPlaylists(page + 1);
         }
     };
 
@@ -48,7 +76,10 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
                 await playlistService.addSongToPlaylist(response.data.playlist_uuid, { song_uuid: song.song_uuid });
                 setNewPlaylistName('');
                 setShowCreateNew(false);
-                await fetchPlaylists();
+
+                // Fetch from page 1 again to refresh exactly what they're looking at
+                setPage(1);
+                await fetchPlaylists(1);
                 onPlaylistCreated?.();
             }
         } catch (err) {
@@ -59,20 +90,24 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
     };
 
     const handleToggleSong = async (playlist: Playlist) => {
-        const songInPlaylist = playlist.songs.some(ps => ps.song.song_uuid === song.song_uuid);
+        const songInPlaylist = playlist.isAdded;
 
         try {
             if (songInPlaylist) {
                 // Remove song from playlist
-                const playlistSong = playlist.songs.find(ps => ps.song.song_uuid === song.song_uuid);
-                if (playlistSong) {
-                    await playlistService.removeSongFromPlaylist(playlist.playlist_uuid, playlistSong.playlist_song_uuid);
-                }
+                await playlistService.removeSongFromPlaylist(playlist.playlist_uuid, song.song_uuid);
             } else {
                 // Add song to playlist
                 await playlistService.addSongToPlaylist(playlist.playlist_uuid, { song_uuid: song.song_uuid });
             }
-            await fetchPlaylists();
+
+            // To maintain pagination state while toggling, we don't refetch everything
+            // Let's directly mutate the local state for a snappier feeling and no page reset
+            setPlaylists(prev => prev.map(p =>
+                p.playlist_uuid === playlist.playlist_uuid
+                    ? { ...p, isAdded: !songInPlaylist }
+                    : p
+            ));
         } catch (err) {
             setError('Failed to update playlist');
         }
@@ -122,7 +157,7 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
                                     </div>
                                 ) : (
                                     playlists.map((playlist) => {
-                                        const isInPlaylist = playlist.songs.some(ps => ps.song.song_uuid === song.song_uuid);
+                                        const isInPlaylist = playlist.isAdded;
                                         return (
                                             <div
                                                 key={playlist.playlist_uuid}
@@ -131,9 +166,6 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
                                             >
                                                 <div className="playlist-item-info">
                                                     <div className="playlist-item-name">{playlist.name}</div>
-                                                    <div className="playlist-item-count">
-                                                        {playlist.songs.length} {playlist.songs.length === 1 ? 'song' : 'songs'}
-                                                    </div>
                                                 </div>
                                                 <div className="playlist-item-check">
                                                     {isInPlaylist && (
@@ -147,6 +179,18 @@ export function AddToPlaylistModal({ isOpen, onClose, song, onPlaylistCreated }:
                                     })
                                 )}
                             </div>
+
+                            {hasNext && (
+                                <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                                    <button
+                                        className="btn btn-sm btn-secondary"
+                                        onClick={handleLoadMore}
+                                        disabled={isLoadingMore}
+                                    >
+                                        {isLoadingMore ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
 
                             {showCreateNew ? (
                                 <div className="create-playlist-inline">

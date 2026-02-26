@@ -12,31 +12,52 @@ export function PlaylistsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     useEffect(() => {
-        fetchPlaylists();
+        fetchPlaylists(1);
     }, []);
 
-    const fetchPlaylists = async () => {
+    const fetchPlaylists = async (pageNumber: number) => {
         try {
-            setIsLoading(true);
-            const response = await playlistService.getPlaylists();
-            if (response.status === 200) {
-                setPlaylists(response.data);
+            if (pageNumber === 1) {
+                setIsLoading(true);
             } else {
-                setError(response.message?.error || 'Failed to fetch playlists');
+                setIsLoadingMore(true);
+            }
+
+            const response = await playlistService.getPlaylists(pageNumber);
+            if (response && response.results) {
+                if (pageNumber === 1) {
+                    setPlaylists(response.results);
+                } else {
+                    setPlaylists(prev => [...prev, ...response.results]);
+                }
+                setHasNext(!!response.next);
+                setPage(pageNumber);
+            } else {
+                setError('Failed to fetch playlists');
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch playlists');
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchPlaylists(page + 1);
         }
     };
 
     const handleCreatePlaylist = async (data: CreatePlaylistRequest) => {
         const response = await playlistService.createPlaylist(data);
         if (response.status === 201) {
-            await fetchPlaylists();
+            await fetchPlaylists(1);
         }
     };
 
@@ -44,7 +65,7 @@ export function PlaylistsPage() {
         if (!editingPlaylist) return;
         const response = await playlistService.updatePlaylist(editingPlaylist.playlist_uuid, data);
         if (response.status === 200) {
-            await fetchPlaylists();
+            await fetchPlaylists(1);
             setEditingPlaylist(null);
         }
     };
@@ -54,7 +75,7 @@ export function PlaylistsPage() {
 
         try {
             await playlistService.deletePlaylist(playlist.playlist_uuid);
-            await fetchPlaylists();
+            await fetchPlaylists(1);
         } catch (err) {
             setError('Failed to delete playlist');
         }
@@ -128,6 +149,18 @@ export function PlaylistsPage() {
                                 onDelete={handleDeletePlaylist}
                             />
                         ))}
+
+                        {hasNext && !searchQuery && (
+                            <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? 'Loading...' : 'Load More'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

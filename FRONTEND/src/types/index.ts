@@ -22,6 +22,13 @@ export interface ApiResponse<T> {
     status: number;
 }
 
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
 // Auth request types
 export interface LoginRequest {
     email: string;
@@ -75,6 +82,10 @@ export interface Playlist {
     playlist_uuid: string;
     name: string;
     created_at: string;
+    isAdded?: boolean;
+}
+
+export interface PlaylistDetail extends Playlist {
     songs: PlaylistSong[];
 }
 

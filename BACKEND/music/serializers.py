@@ -58,32 +58,30 @@ class PlaylistSongModelSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class PlaylistModelSerializer(serializers.ModelSerializer):
-    songs = serializers.SerializerMethodField()
+class PlaylistForSongSerializer(serializers.ModelSerializer):
+    isAdded = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Playlist
         fields = [
             "playlist_uuid",
             "name",
+            "isAdded",
+        ]
+
+
+class PlaylistModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Playlist
+        fields = [
+            "playlist_uuid",
+            "name",
             "created_at",
-            "songs",
         ]
         read_only_fields = ["playlist_uuid", "created_at"]
 
     def create(self, validated_data):
         return super().create(validated_data)
-
-    def get_songs(self, obj):
-        return PlaylistSongModelSerializer(
-            PlaylistSong.objects.filter(
-                playlist=obj,
-                song__is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
-                song__is_upload_complete=True,
-            ).order_by("order"),
-            many=True,
-            context=self.context,
-        ).data
 
 
 class ArtistModelSerializer(serializers.ModelSerializer):

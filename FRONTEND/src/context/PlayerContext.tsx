@@ -456,8 +456,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Aggressively clean up previous audio to ensure buffer is cleared
         cleanupAudio();
         
-        // Small delay to ensure cleanup completed before loading new song
-        requestAnimationFrame(async () => {
+        // Execute immediately without requestAnimationFrame
+        // CRITICAL FIX: requestAnimationFrame doesn't execute in background tabs
+        // This was preventing auto-next from working when browser was minimized/backgrounded
+        const loadAndPlay = async () => {
             if (!audioRef.current || !song) return;
 
             const streamUrl = musicService.getStreamUrl(song.song_uuid);
@@ -510,7 +512,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     console.error("Error in playSong:", error.message);
                 }
             }
-        });
+        };
+
+        // Call immediately without requestAnimationFrame to ensure works in background
+        loadAndPlay();
     };
 
     const toggleRepeat = () => {

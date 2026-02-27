@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 import { SongCard } from '../components/SongCard';
 import { SearchBar } from '../components/SearchBar';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import musicService from '../services/musicService';
 import type { Song } from '../types';
 
@@ -20,35 +21,65 @@ export function HomePage() {
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'grid';
     });
 
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const { lastElementRef } = useInfiniteScroll({
+        hasNext,
+        isLoading: isLoadingMore,
+        onLoadMore: () => handleLoadMore()
+    });
+
     // Check navigation state for welcome message
     const state = location.state as { newlyLoggedIn?: boolean; newlyRegistered?: boolean } | null;
     const showWelcome = state?.newlyLoggedIn || state?.newlyRegistered;
     const isNewUser = state?.newlyRegistered;
 
     useEffect(() => {
+        fetchSongsData(1, true);
+    }, [searchQuery]);
+
+    useEffect(() => {
         localStorage.setItem('homeViewMode', viewMode);
     }, [viewMode]);
 
-    useEffect(() => {
-        const fetchSongs = async () => {
-            try {
+    const fetchSongsData = async (pageNumber: number, isInitial: boolean = false) => {
+        try {
+            if (isInitial) {
                 setIsLoading(true);
-                const params = searchQuery ? { q: searchQuery } : undefined;
-                const response = await musicService.getSongs(params);
-                if (response.status === 200) {
-                    setSongs(response.data);
-                } else {
-                    setError(response.message?.error || 'Failed to fetch songs');
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch songs');
-            } finally {
-                setIsLoading(false);
+            } else {
+                setIsLoadingMore(true);
             }
-        };
 
-        fetchSongs();
-    }, [searchQuery]);
+            const params = {
+                page: pageNumber,
+                ...(searchQuery ? { q: searchQuery } : {})
+            };
+
+            const response = await musicService.getSongs(params);
+
+            if (isInitial) {
+                setSongs(response.results);
+            } else {
+                setSongs(prev => [...prev, ...response.results]);
+            }
+
+            setHasNext(!!response.next);
+            setPage(pageNumber);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch songs');
+        } finally {
+            setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchSongsData(page + 1);
+        }
+    };
     const handleDeleteSong = async (songUuid: string) => {
         try {
             const response = await musicService.deleteSong(songUuid);
@@ -143,15 +174,38 @@ export function HomePage() {
                     </div>
                 ) : (
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list-container"}>
-                        {songs.map((song, index) => (
-                            <SongCard
-                                key={song.song_uuid}
-                                song={song}
-                                viewMode={viewMode}
-                                onPlay={() => playPlaylist(songs, index)}
-                                onDelete={() => handleDeleteSong(song.song_uuid)}
-                            />
-                        ))}
+                        {songs.map((song, index) => {
+                            const isLastItem = index === songs.length - 1;
+                            const songCard = (
+                                <SongCard
+                                    key={song.song_uuid}
+                                    song={song}
+                                    viewMode={viewMode}
+                                    onPlay={() => playPlaylist(songs, index)}
+                                    onDelete={() => handleDeleteSong(song.song_uuid)}
+                                />
+                            );
+
+                            return isLastItem ? (
+                                <div key={song.song_uuid} ref={lastElementRef}>
+                                    {songCard}
+                                </div>
+                            ) : (
+                                songCard
+                            );
+                        })}
+                    </div>
+                )}
+
+                {hasNext && !searchQuery && (
+                    <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                        >
+                            {isLoadingMore ? 'Loading...' : 'Load More'}
+                        </button>
                     </div>
                 )}
             </section>

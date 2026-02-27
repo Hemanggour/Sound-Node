@@ -3,6 +3,7 @@ import playlistService from '../services/playlistService';
 import { PlaylistCard } from '../components/PlaylistCard';
 import { PlaylistModal } from '../components/PlaylistModal';
 import { SearchBar } from '../components/SearchBar';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import type { Playlist, CreatePlaylistRequest } from '../types';
 
 export function PlaylistsPage() {
@@ -15,6 +16,12 @@ export function PlaylistsPage() {
     const [page, setPage] = useState(1);
     const [hasNext, setHasNext] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const { lastElementRef } = useInfiniteScroll({
+        hasNext,
+        isLoading: isLoadingMore,
+        onLoadMore: () => handleLoadMore()
+    });
 
     useEffect(() => {
         fetchPlaylists(1);
@@ -141,14 +148,25 @@ export function PlaylistsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredPlaylists.map((playlist) => (
-                            <PlaylistCard
-                                key={playlist.playlist_uuid}
-                                playlist={playlist}
-                                onEdit={setEditingPlaylist}
-                                onDelete={handleDeletePlaylist}
-                            />
-                        ))}
+                        {filteredPlaylists.map((playlist, index) => {
+                            const isLastItem = index === filteredPlaylists.length - 1;
+                            const playlistCard = (
+                                <PlaylistCard
+                                    key={playlist.playlist_uuid}
+                                    playlist={playlist}
+                                    onEdit={setEditingPlaylist}
+                                    onDelete={handleDeletePlaylist}
+                                />
+                            );
+
+                            return isLastItem ? (
+                                <div key={playlist.playlist_uuid} ref={lastElementRef}>
+                                    {playlistCard}
+                                </div>
+                            ) : (
+                                playlistCard
+                            );
+                        })}
 
                         {hasNext && !searchQuery && (
                             <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>

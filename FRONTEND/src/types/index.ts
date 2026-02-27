@@ -110,7 +110,7 @@ export interface Artist {
 }
 
 export interface ArtistDetail extends Artist {
-    songs: Song[];
+    songs: PaginatedResponse<Song>;
 }
 
 // Album types
@@ -125,7 +125,7 @@ export interface Album {
 }
 
 export interface AlbumDetail extends Album {
-    songs: Song[];
+    songs: PaginatedResponse<Song>;
 }
 
 // Player state

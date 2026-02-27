@@ -1,12 +1,12 @@
 import api from './api';
 import { API_BASE_URL, ENDPOINTS } from '../config/api';
-import type { ApiResponse, UploadSongResponse, Song } from '../types';
+import type { ApiResponse, UploadSongResponse, Song, PaginatedResponse } from '../types';
 
 export const musicService = {
-    async getSongs(params?: { q?: string; artist_uuid?: string; album_uuid?: string }): Promise<ApiResponse<Song[]>> {
-        const response = await api.get<ApiResponse<Song[]>>(ENDPOINTS.GET_SONGS, { 
+    async getSongs(params?: { q?: string; artist_uuid?: string; album_uuid?: string; page?: number }): Promise<PaginatedResponse<Song>> {
+        const response = await api.get<PaginatedResponse<Song>>(ENDPOINTS.GET_SONGS, {
             params,
-            withCredentials: true 
+            withCredentials: true
         });
         return response.data;
     },

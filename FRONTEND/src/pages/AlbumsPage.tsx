@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import albumService from '../services/albumService';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { AlbumCard } from '../components/AlbumCard';
 import { SearchBar } from '../components/SearchBar';
 import type { Album } from '../types';
@@ -10,23 +11,49 @@ export function AlbumsPage() {
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const { lastElementRef } = useInfiniteScroll({
+        hasNext,
+        isLoading: isLoadingMore,
+        onLoadMore: () => handleLoadMore()
+    });
+
     useEffect(() => {
-        fetchAlbums();
+        fetchAlbumsData(1, true);
     }, []);
 
-    const fetchAlbums = async () => {
+    const fetchAlbumsData = async (pageNumber: number, isInitial: boolean = false) => {
         try {
-            setIsLoading(true);
-            const response = await albumService.getAlbums();
-            if (response.status === 200) {
-                setAlbums(response.data);
+            if (isInitial) {
+                setIsLoading(true);
             } else {
-                setError(response.message?.error || 'Failed to fetch albums');
+                setIsLoadingMore(true);
             }
+
+            const response = await albumService.getAlbums(pageNumber);
+
+            if (isInitial) {
+                setAlbums(response.results);
+            } else {
+                setAlbums(prev => [...prev, ...response.results]);
+            }
+
+            setHasNext(!!response.next);
+            setPage(pageNumber);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch albums');
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchAlbumsData(page + 1);
         }
     };
 
@@ -70,12 +97,35 @@ export function AlbumsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredAlbums.map((album) => (
-                            <AlbumCard
-                                key={album.album_uuid}
-                                album={album}
-                            />
-                        ))}
+                        {filteredAlbums.map((album, index) => {
+                            const isLastItem = index === filteredAlbums.length - 1;
+                            const albumCard = (
+                                <AlbumCard
+                                    key={album.album_uuid}
+                                    album={album}
+                                />
+                            );
+
+                            return isLastItem ? (
+                                <div key={album.album_uuid} ref={lastElementRef}>
+                                    {albumCard}
+                                </div>
+                            ) : (
+                                albumCard
+                            );
+                        })}
+
+                        {hasNext && !searchQuery && (
+                            <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? 'Loading...' : 'Load More'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

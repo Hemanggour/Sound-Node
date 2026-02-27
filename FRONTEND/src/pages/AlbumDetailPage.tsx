@@ -1,21 +1,34 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import albumService from '../services/albumService';
+import musicService from '../services/musicService';
 import { usePlayer } from '../context/PlayerContext';
 import { SearchBar } from '../components/SearchBar';
-import type { AlbumDetail, Song } from '../types';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import type { Album, Song } from '../types';
 
 export function AlbumDetailPage() {
     const { albumUuid } = useParams<{ albumUuid: string }>();
     const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
 
-    const [album, setAlbum] = useState<AlbumDetail | null>(null);
+    const location = useLocation();
+    const [album, setAlbum] = useState<Album | null>(location.state?.album || null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [songs, setSongs] = useState<Song[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         const savedMode = localStorage.getItem('albumViewMode');
         return (savedMode === 'grid' || savedMode === 'list') ? savedMode : 'list';
+    });
+
+    const { lastElementRef } = useInfiniteScroll({
+        hasNext,
+        isLoading: isLoadingMore,
+        onLoadMore: () => handleLoadMore()
     });
 
     useEffect(() => {
@@ -24,35 +37,68 @@ export function AlbumDetailPage() {
 
     useEffect(() => {
         if (albumUuid) {
-            fetchAlbumData();
+            fetchAlbumData(1);
         }
     }, [albumUuid]);
 
-    const fetchAlbumData = async () => {
+    const fetchAlbumData = async (pageNumber: number = 1) => {
         if (!albumUuid) return;
 
         try {
-            setIsLoading(true);
-            const response = await albumService.getAlbum(albumUuid);
-            if (response.status === 200) {
-                setAlbum(response.data);
+            if (pageNumber === 1) {
+                setIsLoading(true);
+                // Fetch album metadata only if not passed via state
+                const albumPromise = album
+                    ? Promise.resolve({ status: 200, data: album, message: null })
+                    : albumService.getAlbum(albumUuid);
+
+                const [albumResponse, songsResponse] = await Promise.all([
+                    albumPromise,
+                    musicService.getSongs({ album_uuid: albumUuid, page: pageNumber })
+                ]);
+
+                if (albumResponse.status === 200) {
+                    setAlbum(albumResponse.data);
+                } else {
+                    setError(albumResponse.message?.error || 'Failed to fetch album details');
+                }
+
+                if (songsResponse) {
+                    setSongs(songsResponse.results);
+                    setHasNext(!!songsResponse.next);
+                }
             } else {
-                setError(response.message?.error || 'Failed to fetch album details');
+                setIsLoadingMore(true);
+                const songsResponse = await musicService.getSongs({
+                    album_uuid: albumUuid,
+                    page: pageNumber
+                });
+
+                setSongs(prev => [...prev, ...songsResponse.results]);
+                setHasNext(!!songsResponse.next);
             }
+            setPage(pageNumber);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load album');
+            setError(err instanceof Error ? err.message : 'Failed to load album data');
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchAlbumData(page + 1);
         }
     };
 
     const filteredSongs = useMemo(() => {
-        if (!album) return [];
-        if (!searchQuery) return album.songs;
-        return album.songs.filter(s =>
+        if (!songs.length && !album) return [];
+        if (!searchQuery) return songs;
+        return songs.filter(s =>
             s.title.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [album, searchQuery]);
+    }, [songs, album, searchQuery]);
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
@@ -212,23 +258,51 @@ export function AlbumDetailPage() {
                     <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
                         {filteredSongs.map((song, index) => {
                             const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
+                            const isLastItem = index === filteredSongs.length - 1;
 
-                            if (viewMode === 'grid') {
-                                return (
-                                    <div key={song.song_uuid} className={`song-card ${isCurrentSong ? 'active' : ''}`}>
-                                        <div className="song-cover">
-                                            {song.thumbnail ? (
-                                                <img
-                                                    src={`${song.thumbnail}`}
-                                                    alt={song.title}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                            ) : (
-                                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                                                </svg>
-                                            )}
-                                            <button className="song-play-btn" onClick={() => handlePlaySong(song, index)}>
+                            const songContent = (
+                                <>
+                                    {viewMode === 'grid' ? (
+                                        <div className={`song-card ${isCurrentSong ? 'active' : ''}`}>
+                                            <div className="song-cover">
+                                                {song.thumbnail ? (
+                                                    <img
+                                                        src={`${song.thumbnail}`}
+                                                        alt={song.title}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                ) : (
+                                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                                    </svg>
+                                                )}
+                                                <button className="song-play-btn" onClick={() => handlePlaySong(song, index)}>
+                                                    {isCurrentSong && isPlaying ? (
+                                                        <svg viewBox="0 0 24 24" fill="currentColor">
+                                                            <rect x="6" y="4" width="4" height="16" />
+                                                            <rect x="14" y="4" width="4" height="16" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg viewBox="0 0 24 24" fill="currentColor">
+                                                            <polygon points="5,3 19,12 5,21" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <div className="song-info">
+                                                <h3 className="song-title">{song.title}</h3>
+                                                <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
+                                            </div>
+                                            <div className="song-actions" style={{ justifyContent: 'flex-end' }}>
+                                                <span className="song-duration">{formatDuration(song.duration)}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className={`song-list-item ${isCurrentSong ? 'active' : ''}`}
+                                        >
+                                            <div className="song-number">{index + 1}</div>
+                                            <button className="song-play-btn-small" onClick={() => handlePlaySong(song, index)}>
                                                 {isCurrentSong && isPlaying ? (
                                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                                         <rect x="6" y="4" width="4" height="16" />
@@ -240,44 +314,38 @@ export function AlbumDetailPage() {
                                                     </svg>
                                                 )}
                                             </button>
+                                            <div className="song-info-list" style={{ flex: 1 }}>
+                                                <div className="song-title">{song.title}</div>
+                                                <div className="song-artist">{song.artist_name || 'Unknown Artist'}</div>
+                                            </div>
+                                            <div className="song-duration">{formatDuration(song.duration)}</div>
                                         </div>
-                                        <div className="song-info">
-                                            <h3 className="song-title">{song.title}</h3>
-                                            <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
-                                        </div>
-                                        <div className="song-actions" style={{ justifyContent: 'flex-end' }}>
-                                            <span className="song-duration">{formatDuration(song.duration)}</span>
-                                        </div>
-                                    </div>
-                                );
-                            }
+                                    )}
+                                </>
+                            );
 
-                            return (
-                                <div
-                                    key={song.song_uuid}
-                                    className={`song-list-item ${isCurrentSong ? 'active' : ''}`}
-                                >
-                                    <div className="song-number">{index + 1}</div>
-                                    <button className="song-play-btn-small" onClick={() => handlePlaySong(song, index)}>
-                                        {isCurrentSong && isPlaying ? (
-                                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                                <rect x="6" y="4" width="4" height="16" />
-                                                <rect x="14" y="4" width="4" height="16" />
-                                            </svg>
-                                        ) : (
-                                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                                <polygon points="5,3 19,12 5,21" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                    <div className="song-info-list" style={{ flex: 1 }}>
-                                        <div className="song-title">{song.title}</div>
-                                        <div className="song-artist">{song.artist_name || 'Unknown Artist'}</div>
-                                    </div>
-                                    <div className="song-duration">{formatDuration(song.duration)}</div>
+                            return isLastItem ? (
+                                <div key={song.song_uuid} ref={lastElementRef}>
+                                    {songContent}
+                                </div>
+                            ) : (
+                                <div key={song.song_uuid}>
+                                    {songContent}
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {hasNext && !searchQuery && (
+                    <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                        >
+                            {isLoadingMore ? 'Loading...' : 'Load More'}
+                        </button>
                     </div>
                 )}
             </section>

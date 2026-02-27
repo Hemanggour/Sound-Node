@@ -18,10 +18,11 @@ export const ENDPOINTS = {
 
   // Playlists
   GET_PLAYLISTS: '/playlists/',
+  GET_PLAYLIST: '/playlist/',
   CREATE_PLAYLIST: '/playlists/',
   UPDATE_PLAYLIST: '/playlist/',
   DELETE_PLAYLIST: '/playlist/',
-  GET_PLAYLIST_SONGS: '/playlist/song/add/',
+  LIST_PLAYLIST_SONGS: '/playlist/', // Will append <uuid>/songs/
   ADD_SONG_TO_PLAYLIST: '/playlist/song/add/',
   REMOVE_SONG_FROM_PLAYLIST: '/playlist/song/remove/',
 

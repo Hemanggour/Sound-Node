@@ -67,10 +67,11 @@ class SongView(APIView):
         if album_uuid:
             song_objs = song_objs.filter(album__album_uuid=album_uuid)
 
-        return formatted_response(
-            data=SongModelSerializer(
-                song_objs, many=True, context={"request": self.request}
-            ).data
+        return paginated_response(
+            queryset=song_objs,
+            request=self.request,
+            serializer_class=SongModelSerializer,
+            context={"request": self.request},
         )
 
     def post(self, *args, **kwargs):
@@ -152,6 +153,26 @@ class PlaylistView(APIView):
 
     def get(self, *args, **kwargs):
         user_obj = self.request.user
+
+        kwargs_serializer = self.PlaylistKwargsSerializer(data=self.kwargs)
+
+        playlist_uuid = None
+
+        if self.kwargs.get("playlist_uuid"):
+            kwargs_serializer.is_valid(raise_exception=True)
+            playlist_uuid = kwargs_serializer.validated_data.get("playlist_uuid")
+
+        if playlist_uuid:
+            playlist = get_object_or_404(
+                Playlist, owner=user_obj, playlist_uuid=playlist_uuid
+            )
+            return formatted_response(
+                data=PlaylistModelSerializer(
+                    playlist, context={"request": self.request}
+                ).data,
+                status=status.HTTP_200_OK,
+            )
+
         playlist_objs = Playlist.objects.filter(owner=user_obj).order_by("-created_at")
 
         return paginated_response(
@@ -280,14 +301,16 @@ class PlaylistSongView(APIView):
             Playlist, owner=user_obj, playlist_uuid=playlist_uuid
         )
 
-        playlistsong_objs = PlaylistSong.objects.filter(playlist=playlist)
+        # Order by creation date to ensure consistent pagination
+        playlistsong_objs = PlaylistSong.objects.filter(playlist=playlist).order_by(
+            "added_at"
+        )
 
-        return formatted_response(
-            data=PlaylistSongModelSerializer(
-                playlistsong_objs, many=True, context={"request": self.request}
-            ).data,
-            message="Playlist songs fetched successfully",
-            status=status.HTTP_200_OK,
+        return paginated_response(
+            queryset=playlistsong_objs,
+            request=self.request,
+            serializer_class=PlaylistSongModelSerializer,
+            context={"request": self.request},
         )
 
     def post(self, *args, **kwargs):
@@ -381,21 +404,19 @@ class ArtistView(APIView):
             )
 
             return formatted_response(
-                data=ArtistSongModelSerializer(
+                data=ArtistModelSerializer(
                     artist_obj, context={"request": self.request}
                 ).data,
                 message="Artist fetched successfully",
                 status=status.HTTP_200_OK,
             )
 
-        artist_objs = Artist.objects.filter(created_by=user_obj)
-
-        return formatted_response(
-            data=ArtistModelSerializer(
-                artist_objs, many=True, context={"request": self.request}
-            ).data,
-            message="Artists fetched successfully",
-            status=status.HTTP_200_OK,
+        artist_objs = Artist.objects.filter(created_by=user_obj).order_by("name")
+        return paginated_response(
+            queryset=artist_objs,
+            request=self.request,
+            serializer_class=ArtistModelSerializer,
+            context={"request": self.request},
         )
 
 
@@ -420,21 +441,19 @@ class AlbumView(APIView):
             )
 
             return formatted_response(
-                data=AlbumSongModelSerializer(
+                data=AlbumModelSerializer(
                     album_obj, context={"request": self.request}
                 ).data,
                 message="Album fetched successfully",
                 status=status.HTTP_200_OK,
             )
 
-        album_objs = Album.objects.filter(created_by=user_obj)
-
-        return formatted_response(
-            data=AlbumModelSerializer(
-                album_objs, many=True, context={"request": self.request}
-            ).data,
-            message="Albums fetched successfully",
-            status=status.HTTP_200_OK,
+        album_objs = Album.objects.filter(created_by=user_obj).order_by("-created_at")
+        return paginated_response(
+            queryset=album_objs,
+            request=self.request,
+            serializer_class=AlbumModelSerializer,
+            context={"request": self.request},
         )
 
     def delete(self, *args, **kwargs):

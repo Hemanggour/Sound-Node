@@ -10,7 +10,11 @@ interface PlaylistCardProps {
 export function PlaylistCard({ playlist, onEdit, onDelete }: PlaylistCardProps) {
     return (
         <div className="playlist-card-list">
-            <Link to={`/playlist/${playlist.playlist_uuid}`} className="playlist-card-list-link">
+            <Link
+                to={`/playlist/${playlist.playlist_uuid}`}
+                state={{ playlist }}
+                className="playlist-card-list-link"
+            >
                 <div className="playlist-icon-small">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <rect x="3" y="3" width="7" height="7" />

@@ -8,7 +8,11 @@ interface AlbumCardProps {
 export function AlbumCard({ album }: AlbumCardProps) {
     return (
         <div className="playlist-card-list">
-            <Link to={`/album/${album.album_uuid}`} className="playlist-card-list-link">
+            <Link
+                to={`/album/${album.album_uuid}`}
+                state={{ album }}
+                className="playlist-card-list-link"
+            >
                 <div className="playlist-icon-small" style={{ overflow: 'hidden' }}>
                     {album.cover_image ? (
                         <img

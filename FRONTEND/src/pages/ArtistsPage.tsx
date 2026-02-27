@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import artistService from '../services/artistService';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { ArtistCard } from '../components/ArtistCard';
 import { SearchBar } from '../components/SearchBar';
 import type { Artist } from '../types';
@@ -10,23 +11,49 @@ export function ArtistsPage() {
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const { lastElementRef } = useInfiniteScroll({
+        hasNext,
+        isLoading: isLoadingMore,
+        onLoadMore: () => handleLoadMore()
+    });
+
     useEffect(() => {
-        fetchArtists();
+        fetchArtistsData(1, true);
     }, []);
 
-    const fetchArtists = async () => {
+    const fetchArtistsData = async (pageNumber: number, isInitial: boolean = false) => {
         try {
-            setIsLoading(true);
-            const response = await artistService.getArtists();
-            if (response.status === 200) {
-                setArtists(response.data);
+            if (isInitial) {
+                setIsLoading(true);
             } else {
-                setError(response.message?.error || 'Failed to fetch artists');
+                setIsLoadingMore(true);
             }
+
+            const response = await artistService.getArtists(pageNumber);
+
+            if (isInitial) {
+                setArtists(response.results);
+            } else {
+                setArtists(prev => [...prev, ...response.results]);
+            }
+
+            setHasNext(!!response.next);
+            setPage(pageNumber);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch artists');
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasNext) {
+            fetchArtistsData(page + 1);
         }
     };
 
@@ -70,12 +97,35 @@ export function ArtistsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredArtists.map((artist) => (
-                            <ArtistCard
-                                key={artist.artist_uuid}
-                                artist={artist}
-                            />
-                        ))}
+                        {filteredArtists.map((artist, index) => {
+                            const isLastItem = index === filteredArtists.length - 1;
+                            const artistCard = (
+                                <ArtistCard
+                                    key={artist.artist_uuid}
+                                    artist={artist}
+                                />
+                            );
+
+                            return isLastItem ? (
+                                <div key={artist.artist_uuid} ref={lastElementRef}>
+                                    {artistCard}
+                                </div>
+                            ) : (
+                                artistCard
+                            );
+                        })}
+
+                        {hasNext && !searchQuery && (
+                            <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? 'Loading...' : 'Load More'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

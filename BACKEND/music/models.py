@@ -17,6 +17,7 @@ class Artist(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ["name"]
         indexes = [
             models.Index(fields=["artist_uuid"]),
             models.Index(fields=["name"]),
@@ -38,6 +39,7 @@ class Album(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["album_uuid"]),
             models.Index(fields=["artist"]),
@@ -75,6 +77,7 @@ class Song(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ["title"]
         indexes = [
             models.Index(fields=["song_uuid"]),
             models.Index(fields=["artist"]),
@@ -92,6 +95,7 @@ class Playlist(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["playlist_uuid"]),
             models.Index(fields=["owner"]),

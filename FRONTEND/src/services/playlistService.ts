@@ -57,9 +57,17 @@ export const playlistService = {
         return response.data;
     },
 
-    async getPlaylistSongs(playlistUuid: string): Promise<ApiResponse<PlaylistSong[]>> {
-        const response = await api.get<ApiResponse<PlaylistSong[]>>(
-            `${ENDPOINTS.GET_PLAYLIST_SONGS}${playlistUuid}/`,
+    async getPlaylist(playlistUuid: string): Promise<ApiResponse<Playlist>> {
+        const response = await api.get<ApiResponse<Playlist>>(
+            `${ENDPOINTS.GET_PLAYLIST}${playlistUuid}/`,
+            { withCredentials: true }
+        );
+        return response.data;
+    },
+
+    async getPlaylistSongs(playlistUuid: string, page: number = 1): Promise<PaginatedResponse<PlaylistSong>> {
+        const response = await api.get<PaginatedResponse<PlaylistSong>>(
+            `${ENDPOINTS.LIST_PLAYLIST_SONGS}${playlistUuid}/songs/?page=${page}`,
             { withCredentials: true }
         );
         return response.data;

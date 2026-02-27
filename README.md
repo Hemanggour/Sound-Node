@@ -1,121 +1,263 @@
 # 🎵 Sound-Node
 
-Sound-Node is a modern, full-stack music streaming and management platform. It features a robust **Django REST Framework** backend and a sleek, responsive **React 19** frontend. Designed with scalability and ease of use in mind, it supports multiple audio formats, secure JWT authentication, and seamless media handling.
+![Django](https://img.shields.io/badge/Django-5.x-green)
+![React](https://img.shields.io/badge/React-19-blue)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+A **storage-agnostic, low-latency music streaming platform** built with **Django REST Framework and React**.
+
+Sound-Node is a full-stack media streaming system focused on **performance engineering, scalable storage abstraction, and optimized client playback behavior**.
+It is designed to explore real-world backend challenges in audio delivery and streaming optimization.
 
 ---
 
-## 🏗️ Project Structure
+# 🚀 Features
 
-```text
+### 🎧 Audio Streaming
+
+* Chunked streaming with HTTP range support
+* Optimized first-byte playback performance
+* Multi-format audio support
+* Background playback compatibility
+* Media Session API integration (Play / Pause / Next / Previous)
+* Proper lock-screen metadata handling
+
+### 🗂 Storage Abstraction
+
+* Pluggable storage backend
+
+  * Local FileSystem
+  * S3-compatible storage (AWS S3 / MinIO)
+* Environment-based switching
+* Production-ready scalable design
+
+### 🧠 Client Performance Optimization
+
+* Reduced client memory footprint during playback
+* Optimized buffering strategy
+* Avoided unnecessary re-renders in React
+* Efficient audio lifecycle handling
+
+### 🎼 Music Management
+
+* Albums & Artists with structured tracklists
+* Playlist creation and management
+* Search optimization for GET endpoints
+* Media thumbnails and cover images
+
+### 🔐 Secure & Production-Oriented
+
+* JWT-based authentication
+* Media upload tracking for consistency in database and storage
+* Nginx reverse proxy configuration
+* Fully Dockerized stack
+
+---
+
+# ⚡ Streaming Performance Engineering
+
+Sound-Node was optimized to reduce playback startup latency under throttled Fast 4G conditions:
+
+**Before Optimization:** ~1–2 seconds
+**After Optimization:** ~300–500ms
+
+Key improvements:
+
+* Removed non-essential metadata from audio streams using ffmpeg
+* Optimized chunked response handling
+* Improved time-to-first-byte performance
+* Reduced client-side buffering overhead
+
+This project emphasizes measurable backend performance improvements rather than UI cloning.
+
+---
+
+# 🏗 Architecture Overview
+
+<p align="center">
+  <img src="docs/assets/Sound-Node-Arch.svg"
+       alt="Sound-Node Architecture Diagram"
+       width="100%"/>
+</p>
+<p align="center"><em>High-level system architecture of Sound-Node</em></p>
+
+Sound-Node follows a **reverse-proxy–based, storage-agnostic architecture** designed for secure and scalable media delivery.
+
+## 🔄 Media Request Flow
+
+1. **Client → Nginx**
+
+   * All traffic passes through Nginx (reverse proxy).
+   * Static frontend assets are served directly.
+   * API requests are proxied to the backend.
+
+2. **Authentication & Metadata**
+
+   * The backend validates the request.
+   * Metadata is fetched from PostgreSQL.
+
+3. **Signed URL Generation (S3 Mode)**
+
+   * If S3 storage is enabled, the backend generates a **time-limited signed URL**.
+   * This ensures secure object access without exposing the bucket publicly.
+
+4. **Media Delivery**
+
+   * The client performs a `GET` request using the signed URL.
+   * Nginx proxies the request to S3-compatible storage.
+   * If Local storage mode is enabled, media is served from the local filesystem instead.
+
+---
+
+## 🧠 Architectural Principles
+
+* **Storage Abstraction**
+  Media storage can switch between Local FS and S3-compatible storage via environment configuration without changing business logic.
+
+* **Backend-Controlled Authorization**
+  Clients never access storage directly without backend-issued authorization.
+
+* **Efficient Media Delivery**
+  Large media files are not streamed through the backend, reducing server bandwidth load.
+
+* **Separation of Concerns**
+
+  * Nginx → Traffic routing & static serving
+  * Backend → Authentication, business logic, signed URL generation
+  * Database → Relational metadata
+  * Storage → Media object persistence
+
+---
+
+## Project Structure
+
+```
 Sound-Node/
-├── BACKEND/             # Django REST Framework API
-│   ├── account/         # Authentication & User Management
-│   ├── music/           # Song Metadata & Streaming Logic
-│   └── project/         # Core Settings & Configuration
-├── FRONTEND/            # React 19 + Vite + TypeScript
-│   ├── src/components/  # UI Components (Audio Player, Navbar, etc.)
-│   ├── src/pages/       # Page Views
-│   └── src/services/    # API Interaction
-├── nginx/               # Nginx Configuration (Reverse Proxy)
-├── docker-compose.yml   # Multi-container Orchestration
-└── README.md            # This File
+├── BACKEND/              # Django REST Framework API
+│   ├── account/          # Authentication & User Management
+│   ├── music/            # Streaming, Metadata & Media Logic
+│   └── project/          # Core Configuration
+├── FRONTEND/             # React 19 + Vite + TypeScript
+│   ├── components/       # Audio Player & UI Modules
+│   ├── pages/            # Views
+│   └── services/         # API Layer
+├── nginx/                # Reverse Proxy Configuration
+├── docker-compose.yml    # Container Orchestration
+└── README.md
 ```
 
 ---
 
-## ✨ Key Features
+# 🧰 Tech Stack
 
-- **Advanced Music Management**:
-  - **Artists**: Dedicated profiles with comprehensive discography views.
-  - **Albums**: Rich album details with tracklists and cover art.
-  - **Playlists**: Create and manage custom playlists.
+## Backend
 
-- **Multi-Storage Support**:
-  - **Flexible Backend**: Seamless switching between **Local FileSystem** storage and **S3-compatible** object storage (e.g., AWS S3, MinIO).
-  - **Configurable**: Easily toggle storage backends via environment variables (`STORAGE_BACKEND=local` or `s3`) to suit development or production needs.
+* Django 5
+* Django REST Framework
+* PostgreSQL
+* MinIO / AWS S3
+* JWT Authentication
 
-- **Audio Streaming**:
-  - **Format Support**: Upload and stream various audio formats.
-  - **Optimized Playback**: Chunked streaming for smooth playback performance.
+## Frontend
 
-- **Secure & Scalable**:
-  - **Authentication**: JWT-based secure access.
-  - **Containerized**: Fully Dockerized for easy deployment and scaling.
+* React 19
+* Vite
+* TypeScript
+* Media Session API
+
+## Infrastructure
+
+* Docker
+* Docker Compose
+* Nginx Reverse Proxy
 
 ---
 
-## 🚀 Getting Started (Docker)
+# ⚙️ Environment Configuration
 
-The easiest way to get the entire platform running is using Docker.
+Copy the environment templates:
 
-### Prerequisites
-- [Docker](https://www.docker.com/get-started)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+```bash
+cp .env.example .env
+cp BACKEND/.env.example BACKEND/.env
+```
 
-### Quick Start
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Hemanggour/Sound-Node.git
-   cd Sound-Node
-   ```
+### Storage Backend Selection
 
-2. **Configure Environment**:
-   - Copy `.env.example` to `.env` in the root directory.
-   ```bash
-   cp .env.example .env
-   ```
-   - Copy `.env.example` to `.env` in `BACKEND/` directory.
-   ```bash
-   cp BACKEND/.env.example BACKEND/.env
-   ```
+```env
+STORAGE_BACKEND=local
+```
 
-   *(Refer to `.env.example` in respective directories for required variables)*
+or
 
-3. **Launch the application**:
+```env
+STORAGE_BACKEND=s3
+```
+
+The storage system can be switched without modifying application logic.
+
+---
+
+# 🐳 Quick Start (Docker)
+
+## Prerequisites
+
+* Docker
+* Docker Compose
+
+## 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/Hemanggour/Sound-Node.git
+cd Sound-Node
+```
+
+## 2️⃣ Configure Environment
+
+```bash
+cp .env.example .env
+cp BACKEND/.env.example BACKEND/.env
+```
+
+Adjust environment variables as needed.
+
+## 3️⃣ Launch the Application
+
 ```bash
 docker-compose up --build
 ```
 
-4. **Access the platform**:
-   - **Frontend**: `http://localhost` (via Nginx)
-   - **Backend API**: `http://localhost/api/`
-   - **MinIO Console**: `http://localhost:9001`
+## 4️⃣ Access Services
+
+* Frontend: [http://localhost](http://localhost)
+* Backend API: [http://localhost/api/](http://localhost/api/)
+* MinIO Console: [http://localhost:9001](http://localhost:9001)
 
 ---
 
-## 🛠️ Manual Setup (Without Docker)
+# 🤝 Contributing
 
-If you prefer to run the components individually for development, please follow the detailed setup guides in their respective directories:
+Contributions are welcome.
 
-- **Backend Guide**: [BACKEND/README.md](./BACKEND/README.md)
-- **Frontend Guide**: [FRONTEND/README.md](./FRONTEND/README.md)
+Performance improvements, architectural suggestions, and refactoring ideas are especially appreciated.
 
----
-
-## ✨ Why This Project?
-
-This repository is designed to be a high-quality example of a modern full-stack application, making it perfect for open-source contributions:
-
-- **Clean Architecture**: Separation of concerns between API, Client, and Infrastructure.
-- **Dockerized Environment**: Consistent development and deployment experience.
-- **Modern Tech Stack**: React 19, Django 5, PostgreSQL, and MinIO (S3-compatible storage).
-- **Comprehensive Docs**: Each component is well-documented to help new contributors get started quickly.
-- **Production Ready**: Includes Nginx configuration, media storage handling, and secure authentication flows.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a Pull Request
 
 ---
 
-## 🤝 Contributing
+# 📜 License
 
-We welcome contributions! Whether it's fixing a bug, adding a feature, or improving documentation:
-
-1. Fork the repo.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+Distributed under the MIT License.
 
 ---
 
-## 📜 License
+# 👨‍💻 Author
 
-Distributed under the MIT License. See `LICENSE` for more information.
+**Hemang Gour**
+AI & Backend Engineer
+GitHub: [https://github.com/Hemanggour](https://github.com/Hemanggour)

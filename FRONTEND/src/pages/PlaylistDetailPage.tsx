@@ -68,7 +68,11 @@ export function PlaylistDetailPage() {
                 if (isInitial) {
                     setPlaylistSongs(songsResponse.results);
                 } else {
-                    setPlaylistSongs(prev => [...prev, ...songsResponse.results]);
+                    setPlaylistSongs(prev => {
+                        const existingUuids = new Set(prev.map(ps => ps.playlist_song_uuid));
+                        const newUniqueSongs = songsResponse.results.filter((ps: PlaylistSong) => !existingUuids.has(ps.playlist_song_uuid));
+                        return [...prev, ...newUniqueSongs];
+                    });
                 }
                 setHasNext(!!songsResponse.next);
                 setPage(pageNumber);
@@ -88,14 +92,18 @@ export function PlaylistDetailPage() {
     };
 
     const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext || !playlistUuid) return null;
+        if (!hasNext || !playlistUuid || isLoading || isLoadingMore) return null;
 
         try {
             const nextPage = page + 1;
             const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, nextPage);
 
             if (songsResponse) {
-                setPlaylistSongs(prev => [...prev, ...songsResponse.results]);
+                setPlaylistSongs(prev => {
+                    const existingUuids = new Set(prev.map(ps => ps.playlist_song_uuid));
+                    const newUniqueSongs = songsResponse.results.filter((ps: PlaylistSong) => !existingUuids.has(ps.playlist_song_uuid));
+                    return [...prev, ...newUniqueSongs];
+                });
                 setHasNext(!!songsResponse.next);
                 setPage(nextPage);
                 return songsResponse.results.map(ps => ps.song);

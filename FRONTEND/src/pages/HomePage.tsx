@@ -62,7 +62,11 @@ export function HomePage() {
             if (isInitial) {
                 setSongs(response.results);
             } else {
-                setSongs(prev => [...prev, ...response.results]);
+                setSongs(prev => {
+                    const existingUuids = new Set(prev.map(s => s.song_uuid));
+                    const newUniqueSongs = response.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
+                    return [...prev, ...newUniqueSongs];
+                });
             }
 
             setHasNext(!!response.next);
@@ -82,7 +86,7 @@ export function HomePage() {
     };
 
     const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext) return null;
+        if (!hasNext || isLoading || isLoadingMore) return null;
 
         try {
             const nextPage = page + 1;
@@ -93,7 +97,12 @@ export function HomePage() {
 
             const response = await musicService.getSongs(params);
 
-            setSongs(prev => [...prev, ...response.results]);
+            setSongs(prev => {
+                const existingUuids = new Set(prev.map(s => s.song_uuid));
+                const newUniqueSongs = response.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
+                return [...prev, ...newUniqueSongs];
+            });
+
             setHasNext(!!response.next);
             setPage(nextPage);
 

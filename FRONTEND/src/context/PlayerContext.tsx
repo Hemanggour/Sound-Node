@@ -248,7 +248,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                             if (newSongs && newSongs.length > 0) {
                                 // Update index via state setter
                                 const newIndex = playlist.length;
-                                setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                                setCurrentPlaylist(prev => {
+                                    const existingUuids = new Set(prev.map(s => s.song_uuid));
+                                    const filteredNew = newSongs.filter(s => !existingUuids.has(s.song_uuid));
+                                    return [...prev, ...filteredNew];
+                                });
                                 setCurrentIndex(newIndex);
                                 currentIndexRef.current = newIndex;
                                 await playSongImmediate(newSongs[0]);
@@ -737,7 +741,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                         if (newSongs && newSongs.length > 0) {
                             // Update state with new songs appended
                             const startIndex = playlist.length;
-                            setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                            setCurrentPlaylist(prev => {
+                                const existingUuids = new Set(prev.map(s => s.song_uuid));
+                                const filteredNew = newSongs.filter(s => !existingUuids.has(s.song_uuid));
+                                return [...prev, ...filteredNew];
+                            });
                             setCurrentIndex(startIndex);
                             playSong(newSongs[0]);
                             return;
@@ -789,7 +797,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     const newSongs = await onLoadMoreRef.current();
                     if (newSongs && newSongs.length > 0) {
                         const startIndex = currentPlaylist.length;
-                        setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                        setCurrentPlaylist(prev => {
+                            const existingUuids = new Set(prev.map(s => s.song_uuid));
+                            const filteredNew = newSongs.filter(s => !existingUuids.has(s.song_uuid));
+                            return [...prev, ...filteredNew];
+                        });
                         setCurrentIndex(startIndex);
                         playSong(newSongs[0]);
                         return;

@@ -74,7 +74,11 @@ export function ArtistDetailPage() {
                     page: pageNumber
                 });
 
-                setSongs(prev => [...prev, ...songsResponse.results]);
+                setSongs(prev => {
+                    const existingUuids = new Set(prev.map(s => s.song_uuid));
+                    const newUniqueSongs = songsResponse.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
+                    return [...prev, ...newUniqueSongs];
+                });
                 setHasNext(!!songsResponse.next);
             }
             setPage(pageNumber);
@@ -93,7 +97,7 @@ export function ArtistDetailPage() {
     };
 
     const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext || !artistUuid) return null;
+        if (!hasNext || !artistUuid || isLoading || isLoadingMore) return null;
 
         try {
             const nextPage = page + 1;
@@ -102,7 +106,11 @@ export function ArtistDetailPage() {
                 page: nextPage
             });
 
-            setSongs(prev => [...prev, ...songsResponse.results]);
+            setSongs(prev => {
+                const existingUuids = new Set(prev.map(s => s.song_uuid));
+                const newUniqueSongs = songsResponse.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
+                return [...prev, ...newUniqueSongs];
+            });
             setHasNext(!!songsResponse.next);
             setPage(nextPage);
 

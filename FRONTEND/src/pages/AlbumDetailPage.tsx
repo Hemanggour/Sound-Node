@@ -39,7 +39,7 @@ export function AlbumDetailPage() {
         if (albumUuid) {
             fetchAlbumData(1);
         }
-    }, [albumUuid]);
+    }, [albumUuid, searchQuery]);
 
     const fetchAlbumData = async (pageNumber: number = 1) => {
         if (!albumUuid) return;
@@ -54,7 +54,11 @@ export function AlbumDetailPage() {
 
                 const [albumResponse, songsResponse] = await Promise.all([
                     albumPromise,
-                    musicService.getSongs({ album_uuid: albumUuid, page: pageNumber })
+                    musicService.getSongs({
+                        album_uuid: albumUuid,
+                        page: pageNumber,
+                        ...(searchQuery ? { q: searchQuery } : {})
+                    })
                 ]);
 
                 if (albumResponse.status === 200) {
@@ -71,7 +75,8 @@ export function AlbumDetailPage() {
                 setIsLoadingMore(true);
                 const songsResponse = await musicService.getSongs({
                     album_uuid: albumUuid,
-                    page: pageNumber
+                    page: pageNumber,
+                    ...(searchQuery ? { q: searchQuery } : {})
                 });
 
                 setSongs(prev => {
@@ -122,12 +127,8 @@ export function AlbumDetailPage() {
     };
 
     const filteredSongs = useMemo(() => {
-        if (!songs.length && !album) return [];
-        if (!searchQuery) return songs;
-        return songs.filter(s =>
-            s.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [songs, album, searchQuery]);
+        return songs;
+    }, [songs]);
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
@@ -151,7 +152,7 @@ export function AlbumDetailPage() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (isLoading) {
+    if (isLoading && !album) {
         return (
             <div className="page album-detail-page">
                 <div className="loading-state">
@@ -271,7 +272,12 @@ export function AlbumDetailPage() {
                 </div>
                 {error && <div className="error-message">{error}</div>}
 
-                {filteredSongs.length === 0 ? (
+                {isLoading ? (
+                    <div className="loading-state">
+                        <span className="loader"></span>
+                        <p>Updating songs...</p>
+                    </div>
+                ) : filteredSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

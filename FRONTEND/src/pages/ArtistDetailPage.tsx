@@ -39,7 +39,7 @@ export function ArtistDetailPage() {
         if (artistUuid) {
             fetchArtistData(1);
         }
-    }, [artistUuid]);
+    }, [artistUuid, searchQuery]);
 
     const fetchArtistData = async (pageNumber: number = 1) => {
         if (!artistUuid) return;
@@ -54,7 +54,11 @@ export function ArtistDetailPage() {
 
                 const [artistResponse, songsResponse] = await Promise.all([
                     artistPromise,
-                    musicService.getSongs({ artist_uuid: artistUuid, page: pageNumber })
+                    musicService.getSongs({
+                        artist_uuid: artistUuid,
+                        page: pageNumber,
+                        ...(searchQuery ? { q: searchQuery } : {})
+                    })
                 ]);
 
                 if (artistResponse.status === 200) {
@@ -71,7 +75,8 @@ export function ArtistDetailPage() {
                 setIsLoadingMore(true);
                 const songsResponse = await musicService.getSongs({
                     artist_uuid: artistUuid,
-                    page: pageNumber
+                    page: pageNumber,
+                    ...(searchQuery ? { q: searchQuery } : {})
                 });
 
                 setSongs(prev => {
@@ -122,12 +127,8 @@ export function ArtistDetailPage() {
     };
 
     const filteredSongs = useMemo(() => {
-        if (!songs.length && !artist) return [];
-        if (!searchQuery) return songs;
-        return songs.filter(s =>
-            s.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [songs, artist, searchQuery]);
+        return songs;
+    }, [songs]);
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
@@ -151,7 +152,7 @@ export function ArtistDetailPage() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (isLoading) {
+    if (isLoading && !artist) {
         return (
             <div className="page artist-detail-page">
                 <div className="loading-state">
@@ -262,7 +263,12 @@ export function ArtistDetailPage() {
                 </div>
                 {error && <div className="error-message">{error}</div>}
 
-                {filteredSongs.length === 0 ? (
+                {isLoading ? (
+                    <div className="loading-state">
+                        <span className="loader"></span>
+                        <p>Updating songs...</p>
+                    </div>
+                ) : filteredSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

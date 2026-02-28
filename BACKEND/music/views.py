@@ -10,9 +10,7 @@ from account.jwt_utils import CookieJWTAuthentication
 from music.models import Album, Artist, Playlist, PlaylistSong, Song
 from music.serializers import (
     AlbumModelSerializer,
-    AlbumSongModelSerializer,
     ArtistModelSerializer,
-    ArtistSongModelSerializer,
     PlaylistForSongSerializer,
     PlaylistModelSerializer,
     PlaylistSongModelSerializer,
@@ -294,6 +292,7 @@ class PlaylistSongView(APIView):
         kwargs_serializer.is_valid(raise_exception=True)
 
         playlist_uuid = kwargs_serializer.validated_data.get("playlist_uuid")
+        search_query = self.request.query_params.get("q")
 
         user_obj = self.request.user
 
@@ -302,9 +301,14 @@ class PlaylistSongView(APIView):
         )
 
         # Order by creation date to ensure consistent pagination
-        playlistsong_objs = PlaylistSong.objects.filter(playlist=playlist).order_by(
-            "added_at"
-        )
+        playlistsong_objs = PlaylistSong.objects.filter(playlist=playlist)
+
+        if search_query:
+            playlistsong_objs = playlistsong_objs.filter(
+                song__title__icontains=search_query
+            )
+
+        playlistsong_objs = playlistsong_objs.order_by("added_at")
 
         return paginated_response(
             queryset=playlistsong_objs,

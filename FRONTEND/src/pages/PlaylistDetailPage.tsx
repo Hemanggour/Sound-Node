@@ -42,7 +42,7 @@ export function PlaylistDetailPage() {
             const shouldFetchInfo = !playlist;
             fetchPlaylistData(1, true, shouldFetchInfo);
         }
-    }, [playlistUuid]);
+    }, [playlistUuid, searchQuery]);
 
     const fetchPlaylistData = async (pageNumber: number = 1, isInitial: boolean = false, fetchInfo: boolean = false) => {
         if (!playlistUuid) return;
@@ -63,7 +63,7 @@ export function PlaylistDetailPage() {
             }
 
             // Fetch the songs separately since the playlist API no longer embeds them
-            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, pageNumber);
+            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, pageNumber, searchQuery);
             if (songsResponse) {
                 if (isInitial) {
                     setPlaylistSongs(songsResponse.results);
@@ -96,7 +96,7 @@ export function PlaylistDetailPage() {
 
         try {
             const nextPage = page + 1;
-            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, nextPage);
+            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, nextPage, searchQuery);
 
             if (songsResponse) {
                 setPlaylistSongs(prev => {
@@ -149,12 +149,8 @@ export function PlaylistDetailPage() {
 
     // Filter playlist songs based on search query
     const filteredPlaylistSongs = useMemo(() => {
-        if (!searchQuery) return playlistSongs;
-        return playlistSongs.filter(ps =>
-            ps.song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ps.song.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [playlistSongs, searchQuery]);
+        return playlistSongs;
+    }, [playlistSongs]);
 
     const handlePlayAll = () => {
         if (filteredPlaylistSongs.length > 0) {
@@ -181,7 +177,7 @@ export function PlaylistDetailPage() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (isLoading) {
+    if (isLoading && !playlist) {
         return (
             <div className="page playlist-detail-page">
                 <div className="loading-state">
@@ -309,7 +305,12 @@ export function PlaylistDetailPage() {
                 </div>
                 {error && <div className="error-message">{error}</div>}
 
-                {filteredPlaylistSongs.length === 0 ? (
+                {isLoading ? (
+                    <div className="loading-state">
+                        <span className="loader"></span>
+                        <p>Updating songs...</p>
+                    </div>
+                ) : filteredPlaylistSongs.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

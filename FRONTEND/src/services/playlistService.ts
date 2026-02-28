@@ -65,9 +65,14 @@ export const playlistService = {
         return response.data;
     },
 
-    async getPlaylistSongs(playlistUuid: string, page: number = 1): Promise<PaginatedResponse<PlaylistSong>> {
+    async getPlaylistSongs(playlistUuid: string, page: number = 1, searchQuery?: string): Promise<PaginatedResponse<PlaylistSong>> {
+        let url = `${ENDPOINTS.LIST_PLAYLIST_SONGS}${playlistUuid}/songs/?page=${page}`;
+        if (searchQuery) {
+            url += `&q=${encodeURIComponent(searchQuery)}`;
+        }
+
         const response = await api.get<PaginatedResponse<PlaylistSong>>(
-            `${ENDPOINTS.LIST_PLAYLIST_SONGS}${playlistUuid}/songs/?page=${page}`,
+            url,
             { withCredentials: true }
         );
         return response.data;

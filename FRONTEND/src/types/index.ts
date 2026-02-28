@@ -61,6 +61,7 @@ export interface Song {
     mime_type?: string;
     uploaded_by?: string;
     thumbnail?: string;
+    file?: string;
 }
 
 export interface UploadSongResponse {

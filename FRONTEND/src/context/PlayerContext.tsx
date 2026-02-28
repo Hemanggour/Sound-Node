@@ -79,7 +79,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 audioRef.current.removeAttribute('src');
             }
             audioRef.current.currentTime = 0;
-         }
+        }
 
         // Revoke old blob URL if exists
         if (blobUrlRef.current) {
@@ -145,22 +145,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         cleanupAudio();
 
         try {
-            const streamUrl = musicService.getStreamUrl(song.song_uuid);
-            const response = await fetch(streamUrl, {
-                credentials: 'include',
-            });
+            let audioSrc = '';
 
-            if (!response.ok) {
-                console.error('Failed to fetch audio stream:', response.status);
-                return;
-            }
+            // Optimization: Use direct file URL if available
+            if (song.file) {
+                audioSrc = song.file;
+            } else {
+                const streamUrl = musicService.getStreamUrl(song.song_uuid);
+                const response = await fetch(streamUrl, {
+                    credentials: 'include',
+                });
 
-            const contentType = response.headers.get('content-type');
-            let audioSrc = streamUrl;
+                if (!response.ok) {
+                    console.error('Failed to fetch audio stream:', response.status);
+                    return;
+                }
 
-            if (contentType?.includes('application/json')) {
-                const data = await response.json();
-                audioSrc = data.url;
+                const contentType = response.headers.get('content-type');
+                audioSrc = streamUrl;
+
+                if (contentType?.includes('application/json')) {
+                    const data = await response.json();
+                    audioSrc = data.url;
+                }
             }
 
             if (audioRef.current) {
@@ -207,7 +214,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             };
 
             navigator.mediaSession.setActionHandler('play', playHandler);
-            mediaSessionHandlersRef.current.push(() => 
+            mediaSessionHandlersRef.current.push(() =>
                 navigator.mediaSession?.setActionHandler('play', null)
             );
 
@@ -221,7 +228,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             };
 
             navigator.mediaSession.setActionHandler('pause', pauseHandler);
-            mediaSessionHandlersRef.current.push(() => 
+            mediaSessionHandlersRef.current.push(() =>
                 navigator.mediaSession?.setActionHandler('pause', null)
             );
 
@@ -264,7 +271,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             };
 
             navigator.mediaSession.setActionHandler('nexttrack', nextTrackHandler);
-            mediaSessionHandlersRef.current.push(() => 
+            mediaSessionHandlersRef.current.push(() =>
                 navigator.mediaSession?.setActionHandler('nexttrack', null)
             );
 
@@ -294,7 +301,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             };
 
             navigator.mediaSession.setActionHandler('previoustrack', previousTrackHandler);
-            mediaSessionHandlersRef.current.push(() => 
+            mediaSessionHandlersRef.current.push(() =>
                 navigator.mediaSession?.setActionHandler('previoustrack', null)
             );
 
@@ -307,7 +314,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             };
 
             navigator.mediaSession.setActionHandler('seekto', seekToHandler);
-            mediaSessionHandlersRef.current.push(() => 
+            mediaSessionHandlersRef.current.push(() =>
                 navigator.mediaSession?.setActionHandler('seekto', null)
             );
 
@@ -324,7 +331,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
             try {
                 navigator.mediaSession.setActionHandler('seekforward', seekForwardHandler);
-                mediaSessionHandlersRef.current.push(() => 
+                mediaSessionHandlersRef.current.push(() =>
                     navigator.mediaSession?.setActionHandler('seekforward', null)
                 );
             } catch {
@@ -341,7 +348,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
             try {
                 navigator.mediaSession.setActionHandler('seekbackward', seekBackwardHandler);
-                mediaSessionHandlersRef.current.push(() => 
+                mediaSessionHandlersRef.current.push(() =>
                     navigator.mediaSession?.setActionHandler('seekbackward', null)
                 );
             } catch {
@@ -390,7 +397,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('player_queue', JSON.stringify(currentPlaylist));
         localStorage.setItem('player_original_queue', JSON.stringify(originalPlaylist));
         localStorage.setItem('player_index', currentIndex.toString());
-        
+
         // Keep refs in sync to avoid stale closures in event handlers
         currentPlaylistRef.current = currentPlaylist;
         currentIndexRef.current = currentIndex;
@@ -408,22 +415,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (currentSong && audioRef.current && !audioRef.current.src) {
             const loadSource = async () => {
                 try {
-                    const streamUrl = musicService.getStreamUrl(currentSong.song_uuid);
-                    const response = await fetch(streamUrl, { 
-                        credentials: 'include',
-                    });
-                    
-                    if (!response.ok) {
-                        console.warn("Failed to restore audio source:", response.status);
-                        return;
-                    }
+                    let src = '';
 
-                    const contentType = response.headers.get('content-type');
-                    let src = streamUrl;
+                    if (currentSong.file) {
+                        src = currentSong.file;
+                    } else {
+                        const streamUrl = musicService.getStreamUrl(currentSong.song_uuid);
+                        const response = await fetch(streamUrl, {
+                            credentials: 'include',
+                        });
 
-                    if (contentType?.includes('application/json')) {
-                        const data = await response.json();
-                        src = data.url;
+                        if (!response.ok) {
+                            console.warn("Failed to restore audio source:", response.status);
+                            return;
+                        }
+
+                        const contentType = response.headers.get('content-type');
+                        src = streamUrl;
+
+                        if (contentType?.includes('application/json')) {
+                            const data = await response.json();
+                            src = data.url;
+                        }
                     }
 
                     if (audioRef.current) {
@@ -469,49 +482,73 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         // Aggressively clean up previous audio to ensure buffer is cleared
         cleanupAudio();
-        
+
         // Execute immediately without requestAnimationFrame
         // CRITICAL FIX: requestAnimationFrame doesn't execute in background tabs
         // This was preventing auto-next from working when browser was minimized/backgrounded
         const loadAndPlay = async () => {
             if (!audioRef.current || !song) return;
 
-            const streamUrl = musicService.getStreamUrl(song.song_uuid);
-            
             try {
-                // Fetch to get the actual URL (for S3: gets presigned URL, for local: gets stream directly)
-                const response = await fetch(streamUrl, {
-                    credentials: 'include',
-                });
-                
-                if (!response.ok) {
-                    console.error("Failed to fetch audio stream:", response.status);
-                    return;
-                }
+                let audioSrc = '';
 
-                const contentType = response.headers.get('content-type');
-                let audioSrc = streamUrl;
+                // Optimization: Use direct file URL if available from pre-signed load results
+                if (song.file) {
+                    audioSrc = song.file;
+                } else {
+                    const streamUrl = musicService.getStreamUrl(song.song_uuid);
+                    // Fetch to get the actual URL (for S3: gets presigned URL, for local: gets stream directly)
+                    const response = await fetch(streamUrl, {
+                        credentials: 'include',
+                    });
 
-                // If response is JSON (S3 with presigned URL), extract the URL
-                if (contentType?.includes('application/json')) {
-                    const data = await response.json();
-                    audioSrc = data.url;
+                    if (!response.ok) {
+                        console.error("Failed to fetch audio stream:", response.status);
+                        return;
+                    }
+
+                    const contentType = response.headers.get('content-type');
+                    audioSrc = streamUrl;
+
+                    // If response is JSON (S3 with presigned URL), extract the URL
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
+                        audioSrc = data.url;
+                    }
                 }
-                // For local storage, response is the audio stream itself
-                // So we just use the streamUrl directly
 
                 // Set audio source and play
                 if (audioRef.current) {
                     audioRef.current.src = audioSrc;
                     audioRef.current.volume = volume;
-                    
+
                     // Play without await - fire and forget
-                    audioRef.current.play().catch(error => {
-                        if (error.name !== 'AbortError') {
+                    audioRef.current.play().catch(async (error) => {
+                        // Fallback: If playback fails (likely expired URL), try refreshing from stream endpoint
+                        if (error.name !== 'AbortError' && song.file) {
+                            console.warn("Direct playback failed, retrying via stream endpoint...");
+                            const streamUrl = musicService.getStreamUrl(song.song_uuid);
+                            const response = await fetch(streamUrl, {
+                                credentials: 'include',
+                            });
+
+                            if (response.ok) {
+                                const contentType = response.headers.get('content-type');
+                                let freshSrc = streamUrl;
+                                if (contentType?.includes('application/json')) {
+                                    const data = await response.json();
+                                    freshSrc = data.url;
+                                }
+                                if (audioRef.current) {
+                                    audioRef.current.src = freshSrc;
+                                    audioRef.current.play().catch(e => console.error("Fallback playback failed:", e));
+                                }
+                            }
+                        } else if (error.name !== 'AbortError') {
                             console.error("Error playing song:", error.message);
                         }
                     });
-                    
+
                     setCurrentSong(song);
                     setIsPlaying(true);
 
@@ -546,7 +583,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             if (newShuffleState) {
                 // Turn Shuffle ON - shuffle a copy, don't mutate
                 const shuffled = [...currentPlaylist].sort(() => Math.random() - 0.5);
-                
+
                 if (currentSong) {
                     const index = shuffled.findIndex(s => s.song_uuid === currentSong.song_uuid);
                     if (index !== -1) {
@@ -606,7 +643,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const handleTimeUpdate = () => {
         if (audioRef.current) {
             setProgress(audioRef.current.currentTime);
-            
+
             // Update Media Session position state to show in OS UI
             if ('mediaSession' in navigator && audioRef.current.duration) {
                 try {
@@ -634,7 +671,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             const errorMsg = audioRef.current.error.message || `Code ${audioRef.current.error.code}`;
             console.error('Audio playback error:', errorMsg);
         }
-        
+
         // Reset on error to allow retry
         if (audioRef.current) {
             audioRef.current.src = '';

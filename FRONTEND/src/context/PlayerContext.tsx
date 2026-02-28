@@ -13,7 +13,7 @@ interface PlayerContextType {
     currentPlaylist: Song[];
     currentIndex: number;
     playSong: (song: Song) => void;
-    playPlaylist: (songs: Song[], startIndex?: number) => void;
+    playPlaylist: (songs: Song[], startIndex?: number, onLoadMore?: () => Promise<Song[] | null>) => void;
     playNext: () => void;
     playPrevious: () => void;
     togglePlay: () => void;
@@ -66,6 +66,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const blobUrlRef = useRef<string | null>(null);
     const currentPlaylistRef = useRef<Song[]>([]);
     const currentIndexRef = useRef<number>(-1);
+    const onLoadMoreRef = useRef<(() => Promise<Song[] | null>) | undefined>(undefined);
     const mediaSessionHandlersRef = useRef<Array<() => void>>([]);
 
     // Cleanup function for audio resources
@@ -234,6 +235,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     if (nextIndex >= playlist.length) {
                         if (repeatMode === 'all') {
                             nextIndex = 0;
+                        } else if (onLoadMoreRef.current) {
+                            // Try loading more songs in background
+                            const newSongs = await onLoadMoreRef.current();
+                            if (newSongs && newSongs.length > 0) {
+                                // Update index via state setter
+                                const newIndex = playlist.length;
+                                setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                                setCurrentIndex(newIndex);
+                                currentIndexRef.current = newIndex;
+                                await playSongImmediate(newSongs[0]);
+                                return;
+                            }
+                            return;
                         } else {
                             return; // Don't wrap if not in repeat all mode
                         }
@@ -658,7 +672,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const handleEnded = () => {
+    const handleEnded = async () => {
         if (repeatMode === 'one') {
             // Repeat current track - restart it
             if (audioRef.current) {
@@ -680,6 +694,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 if (nextIndex >= playlist.length) {
                     if (repeatMode === 'all') {
                         nextIndex = 0;
+                    } else if (onLoadMoreRef.current) {
+                        // Attempt to load more songs seamlessly
+                        const newSongs = await onLoadMoreRef.current();
+                        if (newSongs && newSongs.length > 0) {
+                            // Update state with new songs appended
+                            const startIndex = playlist.length;
+                            setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                            setCurrentIndex(startIndex);
+                            playSong(newSongs[0]);
+                            return;
+                        } else {
+                            // No more songs to load
+                            setIsPlaying(false);
+                            if ('mediaSession' in navigator) {
+                                navigator.mediaSession.playbackState = 'paused';
+                            }
+                            return;
+                        }
                     } else {
                         // End of playlist and no repeat - stop playing
                         setIsPlaying(false);
@@ -698,23 +730,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const playPlaylist = (songs: Song[], startIndex: number = 0) => {
+    const playPlaylist = (songs: Song[], startIndex: number = 0, onLoadMore?: () => Promise<Song[] | null>) => {
         setOriginalPlaylist(songs);
         setCurrentPlaylist(songs);
         setCurrentIndex(startIndex);
         setIsShuffle(false);
+        onLoadMoreRef.current = onLoadMore;
         if (songs.length > startIndex) {
             playSong(songs[startIndex]);
         }
     };
 
-    const playNext = () => {
+    const playNext = async () => {
         if (currentPlaylist.length > 0) {
             let nextIndex = currentIndex + 1;
 
             if (nextIndex >= currentPlaylist.length) {
                 if (repeatMode === 'all') {
                     nextIndex = 0;
+                } else if (onLoadMoreRef.current) {
+                    const newSongs = await onLoadMoreRef.current();
+                    if (newSongs && newSongs.length > 0) {
+                        const startIndex = currentPlaylist.length;
+                        setCurrentPlaylist(prev => [...prev, ...newSongs]);
+                        setCurrentIndex(startIndex);
+                        playSong(newSongs[0]);
+                        return;
+                    }
+                    return;
                 } else {
                     setIsPlaying(false);
                     return;

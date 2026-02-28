@@ -92,6 +92,27 @@ export function AlbumDetailPage() {
         }
     };
 
+    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
+        if (!hasNext || !albumUuid) return null;
+
+        try {
+            const nextPage = page + 1;
+            const songsResponse = await musicService.getSongs({
+                album_uuid: albumUuid,
+                page: nextPage
+            });
+
+            setSongs(prev => [...prev, ...songsResponse.results]);
+            setHasNext(!!songsResponse.next);
+            setPage(nextPage);
+
+            return songsResponse.results;
+        } catch (err) {
+            console.error('Failed to load more songs for player:', err);
+            return null;
+        }
+    };
+
     const filteredSongs = useMemo(() => {
         if (!songs.length && !album) return [];
         if (!searchQuery) return songs;
@@ -102,7 +123,7 @@ export function AlbumDetailPage() {
 
     const handlePlayAll = () => {
         if (filteredSongs.length > 0) {
-            playPlaylist(filteredSongs);
+            playPlaylist(filteredSongs, 0, handleLoadMoreForPlayer);
         }
     };
 
@@ -111,7 +132,7 @@ export function AlbumDetailPage() {
         if (isCurrentSong) {
             togglePlay();
         } else {
-            playPlaylist(filteredSongs, index);
+            playPlaylist(filteredSongs, index, handleLoadMoreForPlayer);
         }
     };
 

@@ -75,9 +75,32 @@ export function HomePage() {
         }
     };
 
-    const handleLoadMore = () => {
+    const handleLoadMore = async () => {
         if (!isLoadingMore && hasNext) {
-            fetchSongsData(page + 1);
+            await fetchSongsData(page + 1);
+        }
+    };
+
+    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
+        if (!hasNext) return null;
+
+        try {
+            const nextPage = page + 1;
+            const params = {
+                page: nextPage,
+                ...(searchQuery ? { q: searchQuery } : {})
+            };
+
+            const response = await musicService.getSongs(params);
+
+            setSongs(prev => [...prev, ...response.results]);
+            setHasNext(!!response.next);
+            setPage(nextPage);
+
+            return response.results;
+        } catch (err) {
+            console.error('Failed to load more songs for player:', err);
+            return null;
         }
     };
     const handleDeleteSong = async (songUuid: string) => {
@@ -181,7 +204,7 @@ export function HomePage() {
                                     key={song.song_uuid}
                                     song={song}
                                     viewMode={viewMode}
-                                    onPlay={() => playPlaylist(songs, index)}
+                                    onPlay={() => playPlaylist(songs, index, handleLoadMoreForPlayer)}
                                     onDelete={() => handleDeleteSong(song.song_uuid)}
                                 />
                             );

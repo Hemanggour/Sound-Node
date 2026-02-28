@@ -5,7 +5,7 @@ import { PlaylistModal } from '../components/PlaylistModal';
 import { SearchBar } from '../components/SearchBar';
 import { usePlayer } from '../context/PlayerContext';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
+import type { Playlist, PlaylistSong, UpdatePlaylistRequest, Song } from '../types';
 
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();
@@ -87,6 +87,26 @@ export function PlaylistDetailPage() {
         }
     };
 
+    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
+        if (!hasNext || !playlistUuid) return null;
+
+        try {
+            const nextPage = page + 1;
+            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, nextPage);
+
+            if (songsResponse) {
+                setPlaylistSongs(prev => [...prev, ...songsResponse.results]);
+                setHasNext(!!songsResponse.next);
+                setPage(nextPage);
+                return songsResponse.results.map(ps => ps.song);
+            }
+            return null;
+        } catch (err) {
+            console.error('Failed to load more songs for player:', err);
+            return null;
+        }
+    };
+
     const handleUpdatePlaylist = async (data: UpdatePlaylistRequest) => {
         if (!playlistUuid) return;
         const response = await playlistService.updatePlaylist(playlistUuid, data);
@@ -131,7 +151,7 @@ export function PlaylistDetailPage() {
     const handlePlayAll = () => {
         if (filteredPlaylistSongs.length > 0) {
             const songs = filteredPlaylistSongs.map(ps => ps.song);
-            playPlaylist(songs);
+            playPlaylist(songs, 0, handleLoadMoreForPlayer);
         }
     };
 
@@ -142,7 +162,7 @@ export function PlaylistDetailPage() {
         } else {
             // Map filtered playlist songs to simple Song objects for the player
             const songs = filteredPlaylistSongs.map(ps => ps.song);
-            playPlaylist(songs, index);
+            playPlaylist(songs, index, handleLoadMoreForPlayer);
         }
     };
 

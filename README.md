@@ -274,5 +274,5 @@ These tools are subject to their respective licenses.
 # 👨‍💻 Author
 
 **Hemang Gour**
-AI & Backend Engineer
+
 GitHub: [https://github.com/Hemanggour](https://github.com/Hemanggour)

@@ -11,8 +11,11 @@ import type {
 } from '../types';
 
 export const playlistService = {
-    async getPlaylists(page: number = 1): Promise<PaginatedResponse<Playlist>> {
-        const url = `${ENDPOINTS.GET_PLAYLISTS}?page=${page}`;
+    async getPlaylists(page: number = 1, searchQuery?: string): Promise<PaginatedResponse<Playlist>> {
+        let url = `${ENDPOINTS.GET_PLAYLISTS}?page=${page}`;
+        if (searchQuery) {
+            url += `&q=${encodeURIComponent(searchQuery)}`;
+        }
 
         const response = await api.get<PaginatedResponse<Playlist>>(
             url,

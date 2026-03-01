@@ -141,7 +141,7 @@ class PlaylistView(APIView):
     authentication_classes = [CookieJWTAuthentication]
 
     class PlaylistKwargsSerializer(serializers.Serializer):
-        playlist_uuid = serializers.UUIDField()
+        playlist_uuid = serializers.UUIDField(required=False, allow_null=True)
 
     class PlaylistPostSerializer(serializers.Serializer):
         name = serializers.CharField(required=True, allow_null=False)
@@ -149,10 +149,17 @@ class PlaylistView(APIView):
     class PlaylistPatchSerializer(serializers.Serializer):
         name = serializers.CharField(required=True, allow_null=False)
 
+    class PlaylistQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+
     def get(self, *args, **kwargs):
         user_obj = self.request.user
 
         kwargs_serializer = self.PlaylistKwargsSerializer(data=self.kwargs)
+        query_serializer = self.PlaylistQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
+        search_query = query_serializer.validated_data.get("q")
 
         playlist_uuid = None
 
@@ -172,6 +179,9 @@ class PlaylistView(APIView):
             )
 
         playlist_objs = Playlist.objects.filter(owner=user_obj).order_by("-created_at")
+
+        if search_query:
+            playlist_objs = playlist_objs.filter(name__icontains=search_query)
 
         return paginated_response(
             queryset=playlist_objs,
@@ -286,13 +296,19 @@ class PlaylistSongView(APIView):
 
     class PlaylistSongDeleteSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
+    
+    class PlaylistSongQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
 
     def get(self, *args, **kwargs):
         kwargs_serializer = self.PlaylistSongKwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
 
+        query_serializer = self.PlaylistSongQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
         playlist_uuid = kwargs_serializer.validated_data.get("playlist_uuid")
-        search_query = self.request.query_params.get("q")
+        search_query = query_serializer.validated_data.get("q")
 
         user_obj = self.request.user
 
@@ -394,11 +410,18 @@ class ArtistView(APIView):
     class ArtistKwargsSerializer(serializers.Serializer):
         artist_uuid = serializers.UUIDField(required=False, allow_null=True)
 
+    class ArtistQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+
     def get(self, *args, **kwargs):
         kwargs_serializer = self.ArtistKwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
 
+        query_serializer = self.ArtistQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
         artist_uuid = kwargs_serializer.validated_data.get("artist_uuid")
+        search_query = query_serializer.validated_data.get("q")
 
         user_obj = self.request.user
 
@@ -416,6 +439,10 @@ class ArtistView(APIView):
             )
 
         artist_objs = Artist.objects.filter(created_by=user_obj).order_by("name")
+
+        if search_query:
+            artist_objs = artist_objs.filter(name__icontains=search_query)
+
         return paginated_response(
             queryset=artist_objs,
             request=self.request,
@@ -431,11 +458,18 @@ class AlbumView(APIView):
     class AlbumKwargsSerializer(serializers.Serializer):
         album_uuid = serializers.UUIDField(required=False, allow_null=True)
 
+    class AlbumQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+
     def get(self, *args, **kwargs):
         kwargs_serializer = self.AlbumKwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
 
+        query_serializer = self.AlbumQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
         album_uuid = kwargs_serializer.validated_data.get("album_uuid")
+        search_query = query_serializer.validated_data.get("q")
 
         user_obj = self.request.user
 
@@ -453,6 +487,10 @@ class AlbumView(APIView):
             )
 
         album_objs = Album.objects.filter(created_by=user_obj).order_by("-created_at")
+
+        if search_query:
+            album_objs = album_objs.filter(title__icontains=search_query)
+
         return paginated_response(
             queryset=album_objs,
             request=self.request,

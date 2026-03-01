@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import albumService from '../services/albumService';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { AlbumCard } from '../components/AlbumCard';
@@ -23,7 +23,7 @@ export function AlbumsPage() {
 
     useEffect(() => {
         fetchAlbumsData(1, true);
-    }, []);
+    }, [searchQuery]);
 
     const fetchAlbumsData = async (pageNumber: number, isInitial: boolean = false) => {
         try {
@@ -33,12 +33,16 @@ export function AlbumsPage() {
                 setIsLoadingMore(true);
             }
 
-            const response = await albumService.getAlbums(pageNumber);
+            const response = await albumService.getAlbums(pageNumber, searchQuery);
 
             if (isInitial) {
                 setAlbums(response.results);
             } else {
-                setAlbums(prev => [...prev, ...response.results]);
+                setAlbums(prev => {
+                    const existingUuids = new Set(prev.map(a => a.album_uuid));
+                    const newUniqueAlbums = response.results.filter((a: Album) => !existingUuids.has(a.album_uuid));
+                    return [...prev, ...newUniqueAlbums];
+                });
             }
 
             setHasNext(!!response.next);
@@ -57,10 +61,6 @@ export function AlbumsPage() {
         }
     };
 
-    const filteredAlbums = useMemo(() => {
-        if (!searchQuery) return albums;
-        return albums.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [albums, searchQuery]);
 
     return (
         <div className="page albums-page">
@@ -84,7 +84,7 @@ export function AlbumsPage() {
                         <span className="loader"></span>
                         <p>Loading albums...</p>
                     </div>
-                ) : filteredAlbums.length === 0 ? (
+                ) : albums.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -97,8 +97,8 @@ export function AlbumsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredAlbums.map((album, index) => {
-                            const isLastItem = index === filteredAlbums.length - 1;
+                        {albums.map((album, index) => {
+                            const isLastItem = index === albums.length - 1;
                             const albumCard = (
                                 <AlbumCard
                                     key={album.album_uuid}
@@ -115,7 +115,7 @@ export function AlbumsPage() {
                             );
                         })}
 
-                        {hasNext && !searchQuery && (
+                        {hasNext && (
                             <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
                                 <button
                                     className="btn btn-secondary"

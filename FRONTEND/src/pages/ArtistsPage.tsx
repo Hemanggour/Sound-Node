@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import artistService from '../services/artistService';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { ArtistCard } from '../components/ArtistCard';
@@ -23,7 +23,7 @@ export function ArtistsPage() {
 
     useEffect(() => {
         fetchArtistsData(1, true);
-    }, []);
+    }, [searchQuery]);
 
     const fetchArtistsData = async (pageNumber: number, isInitial: boolean = false) => {
         try {
@@ -33,12 +33,16 @@ export function ArtistsPage() {
                 setIsLoadingMore(true);
             }
 
-            const response = await artistService.getArtists(pageNumber);
+            const response = await artistService.getArtists(pageNumber, searchQuery);
 
             if (isInitial) {
                 setArtists(response.results);
             } else {
-                setArtists(prev => [...prev, ...response.results]);
+                setArtists(prev => {
+                    const existingUuids = new Set(prev.map(a => a.artist_uuid));
+                    const newUniqueArtists = response.results.filter((a: Artist) => !existingUuids.has(a.artist_uuid));
+                    return [...prev, ...newUniqueArtists];
+                });
             }
 
             setHasNext(!!response.next);
@@ -57,10 +61,6 @@ export function ArtistsPage() {
         }
     };
 
-    const filteredArtists = useMemo(() => {
-        if (!searchQuery) return artists;
-        return artists.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [artists, searchQuery]);
 
     return (
         <div className="page artists-page">
@@ -84,7 +84,7 @@ export function ArtistsPage() {
                         <span className="loader"></span>
                         <p>Loading artists...</p>
                     </div>
-                ) : filteredArtists.length === 0 ? (
+                ) : artists.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -97,8 +97,8 @@ export function ArtistsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredArtists.map((artist, index) => {
-                            const isLastItem = index === filteredArtists.length - 1;
+                        {artists.map((artist, index) => {
+                            const isLastItem = index === artists.length - 1;
                             const artistCard = (
                                 <ArtistCard
                                     key={artist.artist_uuid}
@@ -115,7 +115,7 @@ export function ArtistsPage() {
                             );
                         })}
 
-                        {hasNext && !searchQuery && (
+                        {hasNext && (
                             <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
                                 <button
                                     className="btn btn-secondary"

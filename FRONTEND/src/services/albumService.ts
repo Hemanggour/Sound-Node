@@ -3,9 +3,13 @@ import { ENDPOINTS } from '../config/api';
 import type { ApiResponse, Album, PaginatedResponse } from '../types';
 
 export const albumService = {
-    async getAlbums(page: number = 1): Promise<PaginatedResponse<Album>> {
+    async getAlbums(page: number = 1, searchQuery?: string): Promise<PaginatedResponse<Album>> {
+        let url = `${ENDPOINTS.GET_ALBUMS}?page=${page}`;
+        if (searchQuery) {
+            url += `&q=${encodeURIComponent(searchQuery)}`;
+        }
         const response = await api.get<PaginatedResponse<Album>>(
-            `${ENDPOINTS.GET_ALBUMS}?page=${page}`,
+            url,
             { withCredentials: true }
         );
         return response.data;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import playlistService from '../services/playlistService';
 import { PlaylistCard } from '../components/PlaylistCard';
 import { PlaylistModal } from '../components/PlaylistModal';
@@ -25,7 +25,7 @@ export function PlaylistsPage() {
 
     useEffect(() => {
         fetchPlaylists(1);
-    }, []);
+    }, [searchQuery]);
 
     const fetchPlaylists = async (pageNumber: number) => {
         try {
@@ -35,12 +35,16 @@ export function PlaylistsPage() {
                 setIsLoadingMore(true);
             }
 
-            const response = await playlistService.getPlaylists(pageNumber);
+            const response = await playlistService.getPlaylists(pageNumber, searchQuery);
             if (response && response.results) {
                 if (pageNumber === 1) {
                     setPlaylists(response.results);
                 } else {
-                    setPlaylists(prev => [...prev, ...response.results]);
+                    setPlaylists(prev => {
+                        const existingUuids = new Set(prev.map(p => p.playlist_uuid));
+                        const newUniquePlaylists = response.results.filter((p: Playlist) => !existingUuids.has(p.playlist_uuid));
+                        return [...prev, ...newUniquePlaylists];
+                    });
                 }
                 setHasNext(!!response.next);
                 setPage(pageNumber);
@@ -88,10 +92,6 @@ export function PlaylistsPage() {
         }
     };
 
-    const filteredPlaylists = useMemo(() => {
-        if (!searchQuery) return playlists;
-        return playlists.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [playlists, searchQuery]);
 
     return (
         <div className="page playlists-page">
@@ -125,7 +125,7 @@ export function PlaylistsPage() {
                         <span className="loader"></span>
                         <p>Loading playlists...</p>
                     </div>
-                ) : filteredPlaylists.length === 0 ? (
+                ) : playlists.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -148,8 +148,8 @@ export function PlaylistsPage() {
                     </div>
                 ) : (
                     <div className="playlist-list-container">
-                        {filteredPlaylists.map((playlist, index) => {
-                            const isLastItem = index === filteredPlaylists.length - 1;
+                        {playlists.map((playlist, index) => {
+                            const isLastItem = index === playlists.length - 1;
                             const playlistCard = (
                                 <PlaylistCard
                                     key={playlist.playlist_uuid}
@@ -168,7 +168,7 @@ export function PlaylistsPage() {
                             );
                         })}
 
-                        {hasNext && !searchQuery && (
+                        {hasNext && (
                             <div className="load-more-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', width: '100%' }}>
                                 <button
                                     className="btn btn-secondary"

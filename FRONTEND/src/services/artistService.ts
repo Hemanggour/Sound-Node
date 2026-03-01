@@ -3,9 +3,13 @@ import { ENDPOINTS } from '../config/api';
 import type { ApiResponse, Artist, PaginatedResponse } from '../types';
 
 export const artistService = {
-    async getArtists(page: number = 1): Promise<PaginatedResponse<Artist>> {
+    async getArtists(page: number = 1, searchQuery?: string): Promise<PaginatedResponse<Artist>> {
+        let url = `${ENDPOINTS.GET_ARTISTS}?page=${page}`;
+        if (searchQuery) {
+            url += `&q=${encodeURIComponent(searchQuery)}`;
+        }
         const response = await api.get<PaginatedResponse<Artist>>(
-            `${ENDPOINTS.GET_ARTISTS}?page=${page}`,
+            url,
             { withCredentials: true }
         );
         return response.data;

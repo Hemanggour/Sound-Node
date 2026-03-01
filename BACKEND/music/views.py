@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, Max, OuterRef
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -31,7 +32,7 @@ class SongView(APIView):
     authentication_classes = [CookieJWTAuthentication]
 
     class SongKwargsSerializer(serializers.Serializer):
-        song_uuid = serializers.UUIDField(required=True, allow_null=False)
+        song_uuid = serializers.UUIDField(required=False, allow_null=False)
 
     class SongQuerySerializer(serializers.Serializer):
         q = serializers.CharField(required=False, allow_blank=False)
@@ -40,6 +41,17 @@ class SongView(APIView):
 
     def get(self, *args, **kwargs):
         user_obj = self.request.user
+        kwargs_serializer = self.SongKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        song_uuid = kwargs_serializer.validated_data.get("song_uuid")
+
+        if song_uuid:
+            song = get_object_or_404(Song, uploaded_by=user_obj, song_uuid=song_uuid)
+            return formatted_response(
+                data=SongModelSerializer(song, context={"request": self.request}).data,
+                status=status.HTTP_200_OK,
+            )
 
         query_serializer = self.SongQuerySerializer(data=self.request.query_params)
         query_serializer.is_valid(raise_exception=True)
@@ -117,10 +129,16 @@ class SongStreamView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
 
+    class StreamQuerySerializer(serializers.Serializer):
+        direct = serializers.BooleanField(required=False, allow_null=True)
+
     class StreamKwargsSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
     def get(self, *args, **kwargs):
+        query_serializer = self.StreamQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        direct = query_serializer.validated_data.get("direct")
 
         kwargs_serializer = self.StreamKwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
@@ -128,12 +146,34 @@ class SongStreamView(APIView):
         song_uuid = kwargs_serializer.validated_data.get("song_uuid")
 
         song = get_object_or_404(Song, song_uuid=song_uuid, is_upload_complete=True)
+        
+        # If 'direct' is present, stream the file content directly
+        if direct:
+            return stream_file(
+                request=self.request,
+                file_path=song.file.name,
+                content_type=song.mime_type,
+            )
 
-        return stream_file(
-            request=self.request,
-            file_path=song.file.name,
-            content_type=song.mime_type,
-        )
+        # Default to JSON response with metadata to reduce frontend API calls
+        song_data = SongModelSerializer(song, context={"request": self.request}).data
+        
+        if settings.STORAGE_BACKEND == "s3":
+            from music.services.s3_service import generate_presigned_url
+            presigned_url = generate_presigned_url(song.file.name)
+            return JsonResponse({
+                "url": presigned_url,
+                "type": song.mime_type,
+                "song": song_data
+            })
+        else:
+            # For local storage, provide the direct stream URL
+            direct_url = self.request.build_absolute_uri() + "?direct=1"
+            return JsonResponse({
+                "url": direct_url,
+                "type": song.mime_type,
+                "song": song_data
+            })
 
 
 class PlaylistView(APIView):
@@ -510,5 +550,59 @@ class AlbumView(APIView):
 
         return formatted_response(
             message="Album deleted successfully",
+            status=status.HTTP_200_OK,
+        )
+
+class PlaybackQueueView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
+
+    class QueueQuerySerializer(serializers.Serializer):
+        artist_uuid = serializers.UUIDField(required=False, allow_null=False)
+        album_uuid = serializers.UUIDField(required=False, allow_null=False)
+        playlist_uuid = serializers.UUIDField(required=False, allow_null=False)
+        q = serializers.CharField(required=False, allow_blank=False)
+        shuffle = serializers.BooleanField(required=False, default=False)
+
+    def get(self, *args, **kwargs):
+        user_obj = self.request.user
+        query_serializer = self.QueueQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
+        artist_uuid = query_serializer.validated_data.get("artist_uuid")
+        album_uuid = query_serializer.validated_data.get("album_uuid")
+        playlist_uuid = query_serializer.validated_data.get("playlist_uuid")
+        search_query = query_serializer.validated_data.get("q")
+        shuffle = query_serializer.validated_data.get("shuffle")
+
+        # Base queryset for songs uploaded by the user
+        song_objs = Song.objects.filter(
+            uploaded_by=user_obj,
+            is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+            is_upload_complete=True,
+        )
+
+        if playlist_uuid:
+            playlist = get_object_or_404(Playlist, owner=user_obj, playlist_uuid=playlist_uuid)
+            song_objs = Song.objects.filter(
+                playlistsong__playlist=playlist,
+                is_uploaded_to_cloud=settings.STORAGE_BACKEND == "s3",
+                is_upload_complete=True,
+            ).order_by("playlistsong__order")
+        elif artist_uuid:
+            song_objs = song_objs.filter(artist__artist_uuid=artist_uuid).order_by("title")
+        elif album_uuid:
+            song_objs = song_objs.filter(album__album_uuid=album_uuid).order_by("title")
+        
+        if search_query:
+            song_objs = song_objs.filter(title__icontains=search_query)
+
+        if shuffle:
+            song_objs = song_objs.order_by("?")
+
+        queue_uuids = song_objs.values_list("song_uuid", flat=True)
+
+        return formatted_response(
+            data={"queue": list(queue_uuids)},
             status=status.HTTP_200_OK,
         )

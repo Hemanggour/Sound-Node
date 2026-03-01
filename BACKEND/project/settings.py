@@ -260,3 +260,7 @@ elif STORAGE_BACKEND == "s3":
 
 # Streaming chunk size
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 8192))
+
+
+# S3 Presigned URL expiration time in seconds
+S3_PRESIGNED_URL_EXPIRATION = int(os.getenv("S3_PRESIGNED_URL_EXPIRATION", 3600))

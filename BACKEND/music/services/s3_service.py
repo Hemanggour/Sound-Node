@@ -2,7 +2,7 @@ import boto3
 from django.conf import settings
 
 
-def generate_presigned_url(object_path, expires=3600):
+def generate_presigned_url(object_path, expires=settings.S3_PRESIGNED_URL_EXPIRATION):
     """
     Generate a presigned URL for accessing an S3 object.
     Uses the PUBLIC endpoint so browsers can directly access the file.
@@ -39,7 +39,7 @@ def generate_presigned_url(object_path, expires=3600):
     return url
 
 
-def generate_internal_presigned_url(object_path, expires=3600):
+def generate_internal_presigned_url(object_path, expires=settings.S3_PRESIGNED_URL_EXPIRATION):
     """
     Generate a presigned URL for backend-to-backend communication within Docker.
     Uses the INTERNAL endpoint for Docker service-to-service communication.

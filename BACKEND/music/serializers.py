@@ -36,7 +36,7 @@ class SongModelSerializer(serializers.ModelSerializer):
                     instance.thumbnail.url
                 )
             if instance.file:
-                representation["file"] = request.build_absolute_uri(instance.file.url)
+                representation["file"] = instance.file.name
 
         return representation
 

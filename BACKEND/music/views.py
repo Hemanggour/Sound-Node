@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, Max, OuterRef
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -128,10 +129,16 @@ class SongStreamView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
 
+    class StreamQuerySerializer(serializers.Serializer):
+        direct = serializers.BooleanField(required=False, allow_null=True)
+
     class StreamKwargsSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
 
     def get(self, *args, **kwargs):
+        query_serializer = self.StreamQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        direct = query_serializer.validated_data.get("direct")
 
         kwargs_serializer = self.StreamKwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
@@ -139,12 +146,34 @@ class SongStreamView(APIView):
         song_uuid = kwargs_serializer.validated_data.get("song_uuid")
 
         song = get_object_or_404(Song, song_uuid=song_uuid, is_upload_complete=True)
+        
+        # If 'direct' is present, stream the file content directly
+        if direct:
+            return stream_file(
+                request=self.request,
+                file_path=song.file.name,
+                content_type=song.mime_type,
+            )
 
-        return stream_file(
-            request=self.request,
-            file_path=song.file.name,
-            content_type=song.mime_type,
-        )
+        # Default to JSON response with metadata to reduce frontend API calls
+        song_data = SongModelSerializer(song, context={"request": self.request}).data
+        
+        if settings.STORAGE_BACKEND == "s3":
+            from music.services.s3_service import generate_presigned_url
+            presigned_url = generate_presigned_url(song.file.name)
+            return JsonResponse({
+                "url": presigned_url,
+                "type": song.mime_type,
+                "song": song_data
+            })
+        else:
+            # For local storage, provide the direct stream URL
+            direct_url = self.request.build_absolute_uri() + "?direct=1"
+            return JsonResponse({
+                "url": direct_url,
+                "type": song.mime_type,
+                "song": song_data
+            })
 
 
 class PlaylistView(APIView):

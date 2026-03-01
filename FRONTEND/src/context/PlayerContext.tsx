@@ -160,10 +160,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
             const contentType = response.headers.get('content-type');
             let audioSrc = streamUrl;
-
+            let songMetadataFromResponse = null;
             if (contentType?.includes('application/json')) {
                 const data = await response.json();
                 audioSrc = data.url;
+                songMetadataFromResponse = data.song;
             }
 
             if (audioRef.current) {
@@ -174,7 +175,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 setIsPlaying(true);
 
                 // Fetch full metadata for Media Session and UI
-                let songMetadata = songMetadataCache[songId];
+                let songMetadata = songMetadataFromResponse || songMetadataCache[songId];
                 if (!songMetadata) {
                     try {
                         songMetadata = await musicService.getSong(songId);
@@ -182,6 +183,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     } catch (error) {
                         console.error('Failed to fetch metadata for song:', songId);
                     }
+                } else if (songMetadataFromResponse) {
+                    // Seed/update cache with fresh metadata from response
+                    setSongMetadataCache(prev => ({ ...prev, [songId]: songMetadataFromResponse }));
                 }
 
                 if (songMetadata) {
@@ -493,10 +497,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
                 const contentType = response.headers.get('content-type');
                 let audioSrc = streamUrl;
+                let songMetadataFromResponse = null;
 
                 if (contentType?.includes('application/json')) {
                     const data = await response.json();
                     audioSrc = data.url;
+                    songMetadataFromResponse = data.song;
                 }
 
                 if (audioRef.current) {
@@ -510,7 +516,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     });
 
                     // Update current song metadata
-                    let songMetadata = typeof song !== 'string' ? song : songMetadataCache[songUuid];
+                    let songMetadata = songMetadataFromResponse || (typeof song !== 'string' ? song : songMetadataCache[songUuid]);
 
                     if (!songMetadata) {
                         try {
@@ -519,6 +525,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                         } catch (error) {
                             console.error('Failed to fetch metadata for song:', songUuid);
                         }
+                    } else if (songMetadataFromResponse) {
+                        // Seed/update cache with fresh metadata from response
+                        setSongMetadataCache(prev => ({ ...prev, [songUuid]: songMetadataFromResponse }));
                     }
 
                     if (songMetadata) {

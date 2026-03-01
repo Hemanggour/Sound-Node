@@ -5,7 +5,7 @@ import { PlaylistModal } from '../components/PlaylistModal';
 import { SearchBar } from '../components/SearchBar';
 import { usePlayer } from '../context/PlayerContext';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import type { Playlist, PlaylistSong, UpdatePlaylistRequest, Song } from '../types';
+import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
 
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();

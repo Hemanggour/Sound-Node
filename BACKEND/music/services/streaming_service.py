@@ -34,7 +34,7 @@ def stream_file(request, file_path, content_type):
     if settings.STORAGE_BACKEND == "s3":
         from music.services.s3_service import generate_presigned_url
 
-        presigned_url = generate_presigned_url(file_path, expires=3600)
+        presigned_url = generate_presigned_url(file_path)
         # Return presigned URL as JSON so frontend can set it directly as audio src
         # This allows the audio element to properly handle Range requests for seeking
         return JsonResponse({"url": presigned_url, "type": content_type})

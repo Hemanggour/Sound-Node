@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Download static ffmpeg + ffprobe
-RUN curl -fL https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz \
+RUN curl -fL https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-lgpl.tar.xz \
     | tar -xJ \
     && mv ffmpeg-*/bin/ffmpeg /usr/local/bin/ffmpeg \
     && mv ffmpeg-*/bin/ffprobe /usr/local/bin/ffprobe \

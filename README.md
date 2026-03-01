@@ -252,7 +252,22 @@ Performance improvements, architectural suggestions, and refactoring ideas are e
 
 # 📜 License
 
-Distributed under the MIT License.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+
+## Notice
+
+This license applies only to the source code.
+Music, media files, and third-party assets are not covered under this license.
+
+---
+
+## Third-Party Dependencies
+
+This project uses:
+
+- FFmpeg (LGPL licensed)
+
+These tools are subject to their respective licenses.
 
 ---
 

@@ -101,38 +101,13 @@ export function AlbumDetailPage() {
         }
     };
 
-    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext || !albumUuid || isLoading || isLoadingMore) return null;
-
-        try {
-            const nextPage = page + 1;
-            const songsResponse = await musicService.getSongs({
-                album_uuid: albumUuid,
-                page: nextPage
-            });
-
-            setSongs(prev => {
-                const existingUuids = new Set(prev.map(s => s.song_uuid));
-                const newUniqueSongs = songsResponse.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
-                return [...prev, ...newUniqueSongs];
-            });
-            setHasNext(!!songsResponse.next);
-            setPage(nextPage);
-
-            return songsResponse.results;
-        } catch (err) {
-            console.error('Failed to load more songs for player:', err);
-            return null;
-        }
-    };
-
     const filteredSongs = useMemo(() => {
         return songs;
     }, [songs]);
 
     const handlePlayAll = () => {
-        if (filteredSongs.length > 0) {
-            playPlaylist(filteredSongs, 0, handleLoadMoreForPlayer);
+        if (filteredSongs.length > 0 && albumUuid) {
+            playPlaylist({ album_uuid: albumUuid }, 0, filteredSongs);
         }
     };
 
@@ -140,8 +115,8 @@ export function AlbumDetailPage() {
         const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
         if (isCurrentSong) {
             togglePlay();
-        } else {
-            playPlaylist(filteredSongs, index, handleLoadMoreForPlayer);
+        } else if (albumUuid) {
+            playPlaylist({ album_uuid: albumUuid }, index, filteredSongs);
         }
     };
 

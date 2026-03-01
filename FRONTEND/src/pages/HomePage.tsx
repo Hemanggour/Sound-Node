@@ -79,39 +79,12 @@ export function HomePage() {
         }
     };
 
-    const handleLoadMore = async () => {
+    const handleLoadMore = () => {
         if (!isLoadingMore && hasNext) {
-            await fetchSongsData(page + 1);
+            fetchSongsData(page + 1);
         }
     };
 
-    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext || isLoading || isLoadingMore) return null;
-
-        try {
-            const nextPage = page + 1;
-            const params = {
-                page: nextPage,
-                ...(searchQuery ? { q: searchQuery } : {})
-            };
-
-            const response = await musicService.getSongs(params);
-
-            setSongs(prev => {
-                const existingUuids = new Set(prev.map(s => s.song_uuid));
-                const newUniqueSongs = response.results.filter((s: Song) => !existingUuids.has(s.song_uuid));
-                return [...prev, ...newUniqueSongs];
-            });
-
-            setHasNext(!!response.next);
-            setPage(nextPage);
-
-            return response.results;
-        } catch (err) {
-            console.error('Failed to load more songs for player:', err);
-            return null;
-        }
-    };
     const handleDeleteSong = async (songUuid: string) => {
         try {
             const response = await musicService.deleteSong(songUuid);
@@ -213,7 +186,7 @@ export function HomePage() {
                                     key={song.song_uuid}
                                     song={song}
                                     viewMode={viewMode}
-                                    onPlay={() => playPlaylist(songs, index, handleLoadMoreForPlayer)}
+                                    onPlay={() => playPlaylist(searchQuery ? { q: searchQuery } : {}, index, songs)}
                                     onDelete={() => handleDeleteSong(song.song_uuid)}
                                 />
                             );

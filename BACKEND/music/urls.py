@@ -8,11 +8,13 @@ from music.views import (
     PlaylistView,
     SongStreamView,
     SongView,
+    PlaybackQueueView,
 )
 
 urlpatterns = [
     path("songs/", SongView.as_view()),
     path("song/upload/", SongView.as_view()),
+    path("song/<uuid:song_uuid>/", SongView.as_view()),
     path("song/delete/<uuid:song_uuid>/", SongView.as_view()),
     path("song/stream/<uuid:song_uuid>/", SongStreamView.as_view()),
     path("playlists/", PlaylistView.as_view()),
@@ -25,4 +27,5 @@ urlpatterns = [
     path("artist/<uuid:artist_uuid>/", ArtistView.as_view()),
     path("albums/", AlbumView.as_view()),
     path("album/<uuid:album_uuid>/", AlbumView.as_view()),
+    path("playback-queue/", PlaybackQueueView.as_view()),
 ]

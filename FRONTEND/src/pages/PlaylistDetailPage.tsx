@@ -91,30 +91,6 @@ export function PlaylistDetailPage() {
         }
     };
 
-    const handleLoadMoreForPlayer = async (): Promise<Song[] | null> => {
-        if (!hasNext || !playlistUuid || isLoading || isLoadingMore) return null;
-
-        try {
-            const nextPage = page + 1;
-            const songsResponse = await playlistService.getPlaylistSongs(playlistUuid, nextPage, searchQuery);
-
-            if (songsResponse) {
-                setPlaylistSongs(prev => {
-                    const existingUuids = new Set(prev.map(ps => ps.playlist_song_uuid));
-                    const newUniqueSongs = songsResponse.results.filter((ps: PlaylistSong) => !existingUuids.has(ps.playlist_song_uuid));
-                    return [...prev, ...newUniqueSongs];
-                });
-                setHasNext(!!songsResponse.next);
-                setPage(nextPage);
-                return songsResponse.results.map(ps => ps.song);
-            }
-            return null;
-        } catch (err) {
-            console.error('Failed to load more songs for player:', err);
-            return null;
-        }
-    };
-
     const handleUpdatePlaylist = async (data: UpdatePlaylistRequest) => {
         if (!playlistUuid) return;
         const response = await playlistService.updatePlaylist(playlistUuid, data);
@@ -153,9 +129,9 @@ export function PlaylistDetailPage() {
     }, [playlistSongs]);
 
     const handlePlayAll = () => {
-        if (filteredPlaylistSongs.length > 0) {
+        if (filteredPlaylistSongs.length > 0 && playlistUuid) {
             const songs = filteredPlaylistSongs.map(ps => ps.song);
-            playPlaylist(songs, 0, handleLoadMoreForPlayer);
+            playPlaylist({ playlist_uuid: playlistUuid }, 0, songs);
         }
     };
 
@@ -163,10 +139,9 @@ export function PlaylistDetailPage() {
         const isCurrentSong = currentSong?.song_uuid === playlistSong.song.song_uuid;
         if (isCurrentSong) {
             togglePlay();
-        } else {
-            // Map filtered playlist songs to simple Song objects for the player
+        } else if (playlistUuid) {
             const songs = filteredPlaylistSongs.map(ps => ps.song);
-            playPlaylist(songs, index, handleLoadMoreForPlayer);
+            playPlaylist({ playlist_uuid: playlistUuid }, index, songs);
         }
     };
 

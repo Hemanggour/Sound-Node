@@ -1,4 +1,4 @@
-# 🎵 Sound-Node
+# <img src="FRONTEND/public/sound-node-logo.svg" width="60" height="60" valign="middle"> Sound-Node
 
 ![Django](https://img.shields.io/badge/Django-5.x-green)
 ![React](https://img.shields.io/badge/React-19-blue)

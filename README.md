@@ -61,7 +61,8 @@ It is designed to explore real-world backend challenges in audio delivery and st
 Sound-Node was optimized to reduce playback startup latency under throttled Fast 4G conditions:
 
 **Before Optimization:** ~1–2 seconds
-**After Optimization:** ~300–500ms
+
+**After Optimization:** ~400–600ms
 
 Key improvements:
 

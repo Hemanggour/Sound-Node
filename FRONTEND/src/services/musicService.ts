@@ -36,7 +36,7 @@ export const musicService = {
     getStreamUrl(songUuid: string): string {
         return `${API_BASE_URL}${ENDPOINTS.STREAM_SONG}${songUuid}/`;
     },
-    async getPlaybackQueue(params: { artist_uuid?: string; album_uuid?: string; playlist_uuid?: string; q?: string; shuffle?: boolean }): Promise<{ queue: string[] }> {
+    async getPlaybackQueue(params: { artist_uuid?: string; album_uuid?: string; playlist_uuid?: string; q?: string; shuffle?: boolean; start_song_uuid?: string }): Promise<{ queue: string[] }> {
         const response = await api.get<{ data: { queue: string[] } }>(ENDPOINTS.GET_PLAYBACK_QUEUE, {
             params,
             withCredentials: true

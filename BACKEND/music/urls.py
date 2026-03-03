@@ -3,12 +3,12 @@ from django.urls import path
 from music.views import (
     AlbumView,
     ArtistView,
+    PlaybackQueueView,
     PlaylistForSongView,
     PlaylistSongView,
     PlaylistView,
     SongStreamView,
     SongView,
-    PlaybackQueueView,
 )
 
 urlpatterns = [

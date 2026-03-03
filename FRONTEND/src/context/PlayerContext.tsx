@@ -411,34 +411,37 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 try {
                     let src = '';
 
-                    if (currentSong.file) {
-                        src = currentSong.file;
-                    } else {
-                        const streamUrl = musicService.getStreamUrl(currentSong.song_uuid);
-                        const response = await fetch(streamUrl, {
-                            credentials: 'include',
-                        });
+                    // Always fetch a fresh stream URL on mount to avoid stale pre-signed URLs
+                    // unless we are sure the provided .file URL is long-lived (not typical for S3/signed)
+                    const streamUrl = musicService.getStreamUrl(currentSong.song_uuid);
+                    const response = await fetch(streamUrl, {
+                        credentials: 'include',
+                    });
 
-                        if (!response.ok) {
-                            console.warn("Failed to restore audio source:", response.status);
-                            return;
-                        }
+                    if (!response.ok) {
+                        console.warn("Failed to restore audio source:", response.status);
+                        return;
+                    }
 
-                        const contentType = response.headers.get('content-type');
-                        src = streamUrl;
+                    const contentType = response.headers.get('content-type');
+                    src = streamUrl;
 
-                        if (contentType?.includes('application/json')) {
-                            const data = await response.json();
-                            src = data.url;
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
+                        src = data.url;
+                        // Optionally update currentSong if backend returned fresh metadata
+                        if (data.song) {
+                            setCurrentSong(data.song);
                         }
                     }
 
                     if (audioRef.current) {
                         audioRef.current.src = src;
                         audioRef.current.volume = volume;
+                        // Don't auto-play on restore
                     }
                 } catch (error) {
-                    // Silently fail
+                    console.warn("Restoration error:", error);
                 }
             };
             loadSource();
@@ -604,17 +607,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = 'paused';
                 }
+                setIsPlaying(false);
             } else {
+                // Recovery logic: if we have a song but no source (e.g. restoration failed or URL expired)
+                if (currentSong && !audioRef.current.src) {
+                    playSong(currentSong);
+                    return;
+                }
+
                 audioRef.current.play().catch(error => {
                     if (error.name !== 'AbortError') {
                         console.error('Error resuming playback:', error);
+                        // If standard play fails, try a full re-load
+                        if (currentSong) {
+                            playSong(currentSong);
+                        }
                     }
                 });
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = 'playing';
                 }
+                setIsPlaying(true);
             }
-            setIsPlaying(!isPlaying);
         }
     };
 

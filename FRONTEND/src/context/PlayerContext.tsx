@@ -23,7 +23,7 @@ interface PlayerContextType {
     repeatMode: RepeatMode;
     isShuffle: boolean;
     toggleRepeat: () => void;
-    toggleShuffle: () => void;
+    toggleShuffle: () => Promise<void>;
     removeSong: (songUuid: string) => void;
 }
 
@@ -559,10 +559,42 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const toggleShuffle = async () => {
-        setIsShuffle(prev => !prev);
-        // We will fetch the new queue in the next effect or here
-        // For simplicity, let's just trigger a reload of the queue if we have context
-        // This is a bit simplified, but follows the backend shuffle logic
+        const nextShuffle = !isShuffle;
+        setIsShuffle(nextShuffle);
+
+        if (nextShuffle) {
+            // Shuffle ON: Shuffle current queue locally
+            if (currentSong) {
+                const others = currentPlaylist.filter(uuid => uuid !== currentSong.song_uuid);
+                // Fisher-Yates shuffle
+                for (let i = others.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [others[i], others[j]] = [others[j], others[i]];
+                }
+                const shuffled = [currentSong.song_uuid, ...others];
+                setCurrentPlaylist(shuffled);
+                setCurrentIndex(0);
+            }
+        } else {
+            // Shuffle OFF: Restore original order
+            let baseQueue = originalPlaylist;
+
+            if (baseQueue.length === 0 && playbackContext) {
+                try {
+                    const { queue } = await musicService.getPlaybackQueue({ ...playbackContext, shuffle: false });
+                    baseQueue = queue;
+                    setOriginalPlaylist(queue);
+                } catch (error) {
+                    console.error("Failed to fetch original queue:", error);
+                }
+            }
+
+            if (currentSong && baseQueue.length > 0) {
+                const newIndex = baseQueue.indexOf(currentSong.song_uuid);
+                setCurrentPlaylist(baseQueue);
+                setCurrentIndex(newIndex >= 0 ? newIndex : 0);
+            }
+        }
     };
 
     const togglePlay = () => {
@@ -720,7 +752,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const isSameContext = JSON.stringify(context) === JSON.stringify(playbackContext);
         const isSameShuffle = isShuffle === playbackShuffleState;
 
-        if (isSameContext && isSameShuffle && currentPlaylist.length > 0) {
+        if (isSameContext && isSameShuffle && !isShuffle && currentPlaylist.length > 0) {
             // Context and shuffle are the same, just play the song at startIndex
             setCurrentIndex(startIndex);
             const songId = currentPlaylist[startIndex];
@@ -731,16 +763,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const { queue } = await musicService.getPlaybackQueue({ ...context, shuffle: isShuffle });
-            setOriginalPlaylist(queue);
-            setCurrentPlaylist(queue);
-            setCurrentIndex(startIndex);
+            const startSongUuid = initialSongs?.[startIndex]?.song_uuid;
+
+            const { queue } = await musicService.getPlaybackQueue({
+                ...context,
+                shuffle: isShuffle,
+                start_song_uuid: startSongUuid
+            });
+
+            if (isShuffle) {
+                // If started with shuffle, we only fetch the shuffled queue
+                // We keep the old originalPlaylist if it was already set for this context
+                // OR we'll lazy-load it if they toggle shuffle OFF later
+                if (JSON.stringify(context) !== JSON.stringify(playbackContext)) {
+                    setOriginalPlaylist([]);
+                }
+                setCurrentPlaylist(queue);
+                setCurrentIndex(0); // Backend ensures start_song_uuid is at index 0
+            } else {
+                setOriginalPlaylist(queue);
+                setCurrentPlaylist(queue);
+                setCurrentIndex(startIndex);
+            }
+
             setPlaybackContext(context);
             setPlaybackShuffleState(isShuffle);
 
-            if (queue.length > startIndex) {
-                const songId = queue[startIndex];
-                // Check if we already have metadata in the initialSongs
+            if (queue.length > 0) {
+                const songId = isShuffle ? queue[0] : queue[startIndex];
                 const initialSong = initialSongs?.find(s => s.song_uuid === songId);
                 playSong(initialSong || songId);
             }

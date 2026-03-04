@@ -52,7 +52,7 @@ def stream_file(request, file_path, content_type):
         )
         response["Accept-Ranges"] = "bytes"
         response["Content-Length"] = str(file_size)
-        response["Cache-Control"] = "public, max-age=3600"
+        response["Cache-Control"] = "no-store"
         return response
 
     # Parse range header
@@ -80,6 +80,6 @@ def stream_file(request, file_path, content_type):
     response["Content-Range"] = f"bytes {start}-{end}/{file_size}"
     response["Accept-Ranges"] = "bytes"
     response["Content-Length"] = str(length)
-    response["Cache-Control"] = "public, max-age=3600"
+    response["Cache-Control"] = "no-store"
 
     return response

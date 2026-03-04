@@ -1,3 +1,4 @@
+import json
 import boto3
 from botocore.exceptions import ClientError
 from django.conf import settings
@@ -11,6 +12,11 @@ class PublicS3Boto3Storage(S3Boto3Storage):
 
     def url(self, name, parameters=None, expire=None, http_method=None):
         url = super().url(name, parameters, expire, http_method)
+
+        # Remove signed query parameters for thumbnails as they are public
+        if name.startswith("thumbnails/"):
+            if "?" in url:
+                url = url.split("?")[0]
 
         public_endpoint = getattr(settings, "AWS_S3_PUBLIC_ENDPOINT_URL", None)
         internal_endpoint = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
@@ -55,3 +61,24 @@ def ensure_bucket_exists(
 
         else:
             raise
+
+    # Apply bucket policy for public thumbnails
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "PublicThumbnails",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": ["s3:GetObject"],
+                "Resource": f"arn:aws:s3:::{bucket_name}/thumbnails/*",
+            }
+        ],
+    }
+
+    s3.put_bucket_policy(
+        Bucket=bucket_name,
+        Policy=json.dumps(policy),
+    )
+
+    print("Public policy applied for thumbnails/")

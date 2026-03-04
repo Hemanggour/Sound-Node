@@ -1716,6 +1716,10 @@ a:hover {
   text-overflow: ellipsis;
 }
 
+.player-time-mobile {
+  display: none;
+}
+
 .player-controls {
   flex: 1;
   display: flex;
@@ -1964,6 +1968,19 @@ a:hover {
     flex: 1;
     min-width: 0;
     justify-content: flex-end;
+  }
+
+  .player-time-mobile {
+    display: inline-flex;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .player-artist {
+    max-width: 150px;
+    /* Limit artist width on small screens to make room for time */
   }
 
   .player-progress {

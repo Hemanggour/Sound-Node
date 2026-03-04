@@ -83,7 +83,12 @@ export function AudioPlayer() {
                 </div>
                 <div className="player-details" style={{ minWidth: 0, flex: 1 }}>
                     <ScrollingText text={currentSong.title} className="player-title" />
-                    <ScrollingText text={currentSong.artist_name || 'Unknown Artist'} className="player-artist" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ScrollingText text={currentSong.artist_name || 'Unknown Artist'} className="player-artist" />
+                        <div className="player-time-mobile">
+                            {formatTime(progress)} / {formatTime(duration)}
+                        </div>
+                    </div>
                 </div>
             </div>
 

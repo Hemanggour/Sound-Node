@@ -62,6 +62,7 @@ Sound-Node was optimized to reduce playback startup latency and provide a seamle
 
 ### 📊 Performance Metrics (Fast 4G Conditions)
 **Before Optimization:** ~1–2 seconds
+
 **After Optimization:**
   * At startup: **~500ms**
   * While continuous playback or transition between tracks: **0ms - 10ms**

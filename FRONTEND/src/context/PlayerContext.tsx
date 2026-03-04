@@ -69,6 +69,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const activeAudioRef = useRef<HTMLAudioElement | null>(null);
     const standbyAudioRef = useRef<HTMLAudioElement | null>(null);
     const prefetchTriggeredRef = useRef<boolean>(false);
+    const prefetchSongUuidRef = useRef<string | null>(null);
     const repeatModeRef = useRef<RepeatMode>(repeatMode);
     const isShuffleRef = useRef<boolean>(isShuffle);
     const isPlayingRef = useRef<boolean>(isPlaying);
@@ -123,6 +124,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
 
         prefetchTriggeredRef.current = false;
+        prefetchSongUuidRef.current = null;
 
         // Revoke old blob URL if exists
         if (blobUrlRef.current) {
@@ -183,66 +185,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     // Helper to load and play a song by UUID
     const playSongById = async (songId: string) => {
-        if (!activeAudioRef.current) return;
-
-        cleanupAudio();
-        // Re-initialize players after cleanup
-        activeAudioRef.current = createAudioPlayer();
-        standbyAudioRef.current = createAudioPlayer();
-        attachPlayerEvents(activeAudioRef.current);
-        attachPlayerEvents(standbyAudioRef.current);
-
-        try {
-            const streamUrl = musicService.getStreamUrl(songId);
-            const response = await fetch(streamUrl, {
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                console.error('Failed to fetch audio stream:', response.status);
-                return;
-            }
-
-            const contentType = response.headers.get('content-type');
-            let audioSrc = streamUrl;
-            let songMetadataFromResponse = null;
-            if (contentType?.includes('application/json')) {
-                const data = await response.json();
-                audioSrc = data.url;
-                songMetadataFromResponse = data.song;
-            }
-
-            if (activeAudioRef.current) {
-                activeAudioRef.current.src = audioSrc;
-                activeAudioRef.current.volume = volume;
-
-                resumeAudioPlayback();
-                setIsPlaying(true);
-
-                // Fetch full metadata for Media Session and UI
-                let songMetadata = songMetadataFromResponse || songMetadataCache[songId];
-                if (!songMetadata) {
-                    try {
-                        songMetadata = await musicService.getSong(songId);
-                        setSongMetadataCache(prev => ({ ...prev, [songId]: songMetadata }));
-                    } catch (error) {
-                        console.error('Failed to fetch metadata for song:', songId);
-                    }
-                } else if (songMetadataFromResponse) {
-                    // Seed/update cache with fresh metadata from response
-                    setSongMetadataCache(prev => ({ ...prev, [songId]: songMetadataFromResponse }));
-                }
-
-                if (songMetadata) {
-                    setCurrentSong(songMetadata);
-                    setupMediaSession(songMetadata);
-                }
-            }
-        } catch (error) {
-            if (error instanceof Error && error.name !== 'AbortError') {
-                console.error('Error in playSongById:', error.message);
-            }
-        }
+        return playSong(songId);
     };
 
     // Setup Media Session action handlers for OS media controls
@@ -348,8 +291,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
                 if (playlist.length > 0) {
                     let nextIndex = currentIdx + 1;
+                    const currentRepeatMode = repeatModeRef.current;
                     if (nextIndex >= playlist.length) {
-                        if (repeatMode === 'all') {
+                        if (currentRepeatMode === 'all') {
                             nextIndex = 0;
                         } else {
                             return;
@@ -376,8 +320,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
                 if (playlist.length > 0) {
                     let prevIndex = currentIdx - 1;
+                    const currentRepeatMode = repeatModeRef.current;
                     if (prevIndex < 0) {
-                        if (repeatMode === 'all') {
+                        if (currentRepeatMode === 'all') {
                             prevIndex = playlist.length - 1;
                         } else {
                             prevIndex = 0;
@@ -467,13 +412,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (prefetchTriggeredRef.current) {
             prefetchTriggeredRef.current = false;
+            prefetchSongUuidRef.current = null;
             if (standbyAudioRef.current) {
                 standbyAudioRef.current.pause();
                 standbyAudioRef.current.src = '';
                 standbyAudioRef.current.load();
             }
         }
-    }, [repeatMode, isShuffle]);
+    }, [isShuffle, currentPlaylist]);
 
     // Restore Audio Source on Mount
     useEffect(() => {
@@ -552,6 +498,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // If we have the full song object, seed the cache
         if (typeof song !== 'string') {
             setSongMetadataCache(prev => ({ ...prev, [song.song_uuid]: song }));
+        }
+
+        // Check if we can reuse prefetched standby player
+        if (prefetchSongUuidRef.current === songUuid && standbyAudioRef.current?.src) {
+            const playlist = currentPlaylistRef.current;
+            let targetIndex = currentIndexRef.current;
+
+            // Update index if it's the next one or find it
+            if (playlist[targetIndex + 1] === songUuid) {
+                targetIndex = targetIndex + 1;
+            } else if (playlist[targetIndex] !== songUuid) {
+                targetIndex = playlist.indexOf(songUuid);
+            }
+
+            if (targetIndex !== -1) {
+                const success = await performGaplessSwitch(targetIndex, songUuid);
+                if (success) return;
+            }
         }
 
         cleanupAudio();
@@ -758,15 +722,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         if (playlist.length === 0) return;
 
-        // In "Repeat One" mode, the next track is the same track
-        // But the gapless switch logic is currently simpler to handle for "Next" tracks
-        // For "Repeat One", we might just let handleEnded restart the track for now
-        // since gapless switching to the same URL in a separate player might be redundant
-        if (currentRepeatMode === 'one') return;
-
         let nextIndex = currentIdx + 1;
+        // Even in "Repeat One", we prefetch the *next* song in the list
+        // This ensures that manual "Next" skips remain instant.
         if (nextIndex >= playlist.length) {
-            if (currentRepeatMode === 'all') {
+            if (currentRepeatMode === 'all' || currentRepeatMode === 'one') {
                 nextIndex = 0;
             } else {
                 return;
@@ -775,6 +735,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         const nextSongUuid = playlist[nextIndex];
         if (!nextSongUuid) return;
+
+        // Optimization: If next song is the same as current song (e.g. 1-song playlist),
+        // don't prefetch into standby; we'll use native looping on the active player.
+        if (nextSongUuid === playlist[currentIdx]) return;
+
+        // Optimization: If already prefetched this song, don't do it again
+        if (prefetchSongUuidRef.current === nextSongUuid && standbyAudioRef.current?.src) {
+            prefetchTriggeredRef.current = true;
+            return;
+        }
 
         prefetchTriggeredRef.current = true;
 
@@ -799,6 +769,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 standbyAudioRef.current.src = nextSrc;
                 standbyAudioRef.current.preload = 'auto';
                 standbyAudioRef.current.load();
+                prefetchSongUuidRef.current = nextSongUuid;
             }
         } catch (error) {
             console.warn('[Gapless] Prefetch failed:', error);
@@ -855,89 +826,102 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const performGaplessSwitch = async (nextIndex: number, nextSongUuid: string) => {
+        if (!standbyAudioRef.current || !standbyAudioRef.current.src) return false;
+
+        const oldActive = activeAudioRef.current;
+        const newActive = standbyAudioRef.current;
+
+        // Swap roles
+        activeAudioRef.current = newActive;
+        standbyAudioRef.current = createAudioPlayer(); // Recreate standby
+
+        // Destroy old active
+        if (oldActive) {
+            detachPlayerEvents(oldActive);
+            oldActive.pause();
+            oldActive.src = '';
+            oldActive.removeAttribute('src');
+            oldActive.load();
+        }
+
+        // Prepare new active
+        attachPlayerEvents(activeAudioRef.current);
+        activeAudioRef.current.play().catch(error => {
+            if (error.name !== 'AbortError') {
+                console.error('[Gapless] Play failed after switch:', error);
+            }
+        });
+        setIsPlaying(true);
+
+        // Update duration immediately since metadata is already loaded
+        if (activeAudioRef.current.duration) {
+            setDuration(activeAudioRef.current.duration);
+        }
+
+        // Update state
+        setCurrentIndex(nextIndex);
+        prefetchTriggeredRef.current = false;
+        prefetchSongUuidRef.current = null;
+
+        // Update metadata
+        const songMetadata = songMetadataCache[nextSongUuid];
+        if (songMetadata) {
+            setCurrentSong(songMetadata);
+            setupMediaSession(songMetadata);
+        } else {
+            try {
+                const fullMetadata = await musicService.getSong(nextSongUuid);
+                setCurrentSong(fullMetadata);
+                setupMediaSession(fullMetadata);
+                setSongMetadataCache(prev => ({ ...prev, [nextSongUuid]: fullMetadata }));
+            } catch (error) {
+                console.error('[Gapless] Failed to fetch metadata for switched track:', error);
+            }
+        }
+
+        return true;
+    };
+
     const handleEnded = async () => {
         const currentRepeatMode = repeatModeRef.current;
+        const playlist = currentPlaylistRef.current;
+        const currentIdx = currentIndexRef.current;
 
+        if (playlist.length === 0) return;
+
+        // Optimized Repeat One: Natively loop the active player
+        // This reuses the existing buffer and avoids a full refetch/swap
         if (currentRepeatMode === 'one') {
             if (activeAudioRef.current) {
                 activeAudioRef.current.currentTime = 0;
-                activeAudioRef.current.play().catch(error => {
-                    if (error.name !== 'AbortError') {
-                        console.error('Error restarting track:', error);
-                    }
-                });
+                activeAudioRef.current.play().catch(() => { });
                 setIsPlaying(true);
+                return;
             }
+        }
+
+        let nextIndex = currentIdx + 1;
+        if (nextIndex >= playlist.length) {
+            if (currentRepeatMode === 'all') {
+                nextIndex = 0;
+            } else {
+                setIsPlaying(false);
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'paused';
+                }
+                return;
+            }
+        }
+
+        const nextSongUuid = playlist[nextIndex];
+
+        // Gapless Switch if standby matches
+        if (prefetchSongUuidRef.current === nextSongUuid && standbyAudioRef.current?.src) {
+            await performGaplessSwitch(nextIndex, nextSongUuid);
         } else {
-            const playlist = currentPlaylistRef.current;
-            const currentIdx = currentIndexRef.current;
-
-            if (playlist.length > 0) {
-                let nextIndex = currentIdx + 1;
-
-                if (nextIndex >= playlist.length) {
-                    if (currentRepeatMode === 'all') {
-                        nextIndex = 0;
-                    } else {
-                        setIsPlaying(false);
-                        if ('mediaSession' in navigator) {
-                            navigator.mediaSession.playbackState = 'paused';
-                        }
-                        return;
-                    }
-                }
-
-                const nextSongUuid = playlist[nextIndex];
-
-                // Gapless Switch
-                if (standbyAudioRef.current && standbyAudioRef.current.src) {
-
-                    const oldActive = activeAudioRef.current;
-                    const newActive = standbyAudioRef.current;
-
-                    // Swap roles
-                    activeAudioRef.current = newActive;
-                    standbyAudioRef.current = oldActive ? createAudioPlayer() : createAudioPlayer(); // Recreate standby
-
-                    // Destroy old active
-                    if (oldActive) {
-                        detachPlayerEvents(oldActive);
-                        oldActive.pause();
-                        oldActive.src = '';
-                        oldActive.load();
-                    }
-
-                    // Prepare new active
-                    attachPlayerEvents(activeAudioRef.current);
-                    activeAudioRef.current.play().catch(console.error);
-                    setIsPlaying(true); // Ensure UI sync
-
-                    // Update duration immediately since metadata is already loaded
-                    if (activeAudioRef.current.duration) {
-                        setDuration(activeAudioRef.current.duration);
-                    }
-
-                    // Update state
-                    setCurrentIndex(nextIndex);
-                    prefetchTriggeredRef.current = false;
-
-                    // Update metadata
-                    const songMetadata = songMetadataCache[nextSongUuid];
-                    if (songMetadata) {
-                        setCurrentSong(songMetadata);
-                        setupMediaSession(songMetadata);
-                    } else {
-                        // Fallback if metadata not cached
-                        const fullMetadata = await musicService.getSong(nextSongUuid);
-                        setCurrentSong(fullMetadata);
-                        setupMediaSession(fullMetadata);
-                    }
-                } else {
-                    // Fallback to regular play if standby not ready
-                    setCurrentIndex(nextIndex);
-                    playSong(playlist[nextIndex]);
-                }
-            }
+            setCurrentIndex(nextIndex);
+            playSong(playlist[nextIndex]);
         }
     };
 
@@ -1005,35 +989,54 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const playNext = () => {
-        if (currentPlaylist.length > 0) {
-            let nextIndex = currentIndex + 1;
+        const playlist = currentPlaylistRef.current;
+        if (playlist.length > 0) {
+            let nextIndex = currentIndexRef.current + 1;
+            const currentRepeatMode = repeatModeRef.current;
 
-            if (nextIndex >= currentPlaylist.length) {
-                if (repeatMode === 'all') {
+            if (nextIndex >= playlist.length) {
+                if (currentRepeatMode === 'all') {
                     nextIndex = 0;
                 } else {
                     return;
                 }
             }
-            setCurrentIndex(nextIndex);
-            playSong(currentPlaylist[nextIndex]);
+
+            const nextSongUuid = playlist[nextIndex];
+
+            // Reuse prefetch if available
+            if (prefetchSongUuidRef.current === nextSongUuid && standbyAudioRef.current?.src) {
+                performGaplessSwitch(nextIndex, nextSongUuid);
+            } else {
+                setCurrentIndex(nextIndex);
+                playSong(nextSongUuid);
+            }
         }
     };
 
     const playPrevious = () => {
-        if (currentPlaylist.length > 0) {
-            let prevIndex = currentIndex - 1;
+        const playlist = currentPlaylistRef.current;
+        if (playlist.length > 0) {
+            let prevIndex = currentIndexRef.current - 1;
+            const currentRepeatMode = repeatModeRef.current;
 
             if (prevIndex < 0) {
-                if (repeatMode === 'all') {
-                    prevIndex = currentPlaylist.length - 1;
+                if (currentRepeatMode === 'all') {
+                    prevIndex = playlist.length - 1;
                 } else {
                     prevIndex = 0;
                 }
             }
 
-            setCurrentIndex(prevIndex);
-            playSong(currentPlaylist[prevIndex]);
+            const prevSongUuid = playlist[prevIndex];
+
+            // Reuse prefetch if available (mostly for Repeat One or rapid skipping)
+            if (prefetchSongUuidRef.current === prevSongUuid && standbyAudioRef.current?.src) {
+                performGaplessSwitch(prevIndex, prevSongUuid);
+            } else {
+                setCurrentIndex(prevIndex);
+                playSong(prevSongUuid);
+            }
         }
     };
 

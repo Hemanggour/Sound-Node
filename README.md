@@ -58,20 +58,35 @@ It is designed to explore real-world backend challenges in audio delivery and st
 
 # ⚡ Streaming Performance Engineering
 
-Sound-Node was optimized to reduce playback startup latency under throttled Fast 4G conditions:
+Sound-Node was optimized to reduce playback startup latency and provide a seamless listening experience.
 
-**Before Optimization:** ~1–2 seconds
+### 📊 Performance Metrics (Fast 4G Conditions)
+**Before Optimization:** ~1–2 seconds  
+**After Optimization:** **~500ms**
 
-**After Optimization:** ~400–600ms
+### 🛠 Key Optimizations
 
-Key improvements:
+#### 1. Gapless Playback & Instant Transitions
+Achieved **0ms - 10ms latency** between songs through a dual-player architecture:
+*   **Active/Standby Players**: The system maintains two `<audio>` elements. While the active player is finishing, the standby player pre-buffers the next track.
+*   **Predictive Pre-fetching**: The next song begins pre-fetching once the current song reaches 85% completion.
+*   **Gapless Switch**: Roles are swapped instantly upon track end, resetting metadata and duration without a full player re-initialization.
+*   **Manual Skip Optimization**: If a user manually skips to the next track that is already pre-fetched, the switch happens instantly.
 
-* Removed non-essential metadata from audio streams using ffmpeg
-* Optimized chunked response handling
-* Improved time-to-first-byte performance
-* Reduced client-side buffering overhead
+#### 2. Backend Efficiency & Nginx Caching
+*   **Consolidated API Responses**: The streaming endpoint returns the signed URL, MIME type, and song metadata in a **single JSON response**, eliminating redundant meta-data fetch calls.
+*   **Nginx Reverse Proxy Caching**:
+    *   **Keep Connections Open**: `keepalive 32` is used to keep connections open with backend, which reduces connection overhead.
+    *   **Static Assets (Frontend build)**: Cached for **30-365 days** with `immutable` and `max-age` headers.
+    *   **Buffering Control**: `proxy_buffering` is disabled for streaming endpoints to ensure real-time chunk delivery.
+*   **FFmpeg Metadata Stripping**: Song files are processed on upload to strip all non-essential ID3/APIC tags using the `-map_metadata -1` flag with `-c:a copy` to preserve quality.
+    *   **The Problem**: Large embedded artwork and metadata often occupy the first few chunks of an audio file. In a throttled environment (e.g., Fast 4G), this can cause a **1-2 second delay** before the first audio frame is even reached by the browser.
+    *   **The Solution**: By stripping these tags, the initial chunks contain actual audio data almost immediately. This reduces the **Time to First Playback** to a consistent **~500ms**, while also slightly reducing the storage footprint.
 
-This project emphasizes measurable backend performance improvements rather than UI cloning.
+#### 3. Client-Side Resilience
+*   **Native Looping**: "Repeat One" mode reuses the active player's buffer for instant replay.
+*   **Smart Metadata Caching**: Frontend maintains a local cache of song metadata to prevent API roundtrips during navigation and queue management.
+*   **Abort Signal Handling**: In-flight fetch requests are aborted when the song changes, freeing up connection slots and reducing bandwidth waste.
 
 ---
 

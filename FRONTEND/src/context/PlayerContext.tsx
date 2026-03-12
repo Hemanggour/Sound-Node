@@ -17,6 +17,7 @@ interface PlayerContextType {
     playNext: () => void;
     playPrevious: () => void;
     togglePlay: () => void;
+    refreshCurrentQueue: () => Promise<void>;
     seek: (time: number) => void;
     setVolume: (volume: number) => void;
     activeAudioRef: React.RefObject<HTMLAudioElement | null>;
@@ -56,8 +57,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
 
     const [songMetadataCache, setSongMetadataCache] = useState<Record<string, Song>>({});
-    const [playbackContext, setPlaybackContext] = useState<Record<string, string>>({});
-    const [playbackShuffleState, setPlaybackShuffleState] = useState<boolean>(false);
+    const [playbackContext, setPlaybackContext] = useState<Record<string, string>>(() => {
+        const saved = localStorage.getItem('player_context');
+        return saved ? JSON.parse(saved) : {};
+    });
+    const [playbackShuffleState, setPlaybackShuffleState] = useState<boolean>(() => {
+        const saved = localStorage.getItem('player_shuffle_state');
+        return saved === 'true';
+    });
     const [repeatMode, setRepeatMode] = useState<RepeatMode>(() => {
         const saved = localStorage.getItem('player_repeat');
         return (saved === 'one' || saved === 'all') ? saved : 'off';
@@ -390,7 +397,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Keep refs in sync to avoid stale closures in event handlers
         currentPlaylistRef.current = currentPlaylist;
         currentIndexRef.current = currentIndex;
-    }, [currentSong, currentPlaylist, originalPlaylist, currentIndex]);
+
+        localStorage.setItem('player_context', JSON.stringify(playbackContext));
+        localStorage.setItem('player_shuffle_state', playbackShuffleState.toString());
+    }, [currentSong, currentPlaylist, originalPlaylist, currentIndex, playbackContext, playbackShuffleState]);
 
     // Persist Settings and Keep Refs updated
     useEffect(() => {
@@ -481,6 +491,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Initial queue refresh if we have a context
+        if (Object.keys(playbackContext).length > 0 || currentPlaylist.length > 0) {
+            refreshCurrentQueue();
+        }
 
         // Cleanup on unmount
         return () => {
@@ -925,6 +940,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const refreshCurrentQueue = async () => {
+        try {
+            const { queue } = await musicService.getPlaybackQueue({
+                ...playbackContext,
+                shuffle: isShuffle
+            });
+
+            if (isShuffle) {
+                setCurrentPlaylist(queue);
+                if (currentSong) {
+                    const newIndex = queue.indexOf(currentSong.song_uuid);
+                    setCurrentIndex(newIndex >= 0 ? newIndex : 0);
+                }
+            } else {
+                setOriginalPlaylist(queue);
+                setCurrentPlaylist(queue);
+                if (currentSong) {
+                    const newIndex = queue.indexOf(currentSong.song_uuid);
+                    setCurrentIndex(newIndex >= 0 ? newIndex : 0);
+                }
+            }
+            setPlaybackShuffleState(isShuffle);
+        } catch (error) {
+            console.error("Failed to refresh playback queue:", error);
+        }
+    };
+
     const playPlaylist = async (context: { artist_uuid?: string; album_uuid?: string; playlist_uuid?: string; q?: string }, startIndex: number = 0, initialSongs?: Song[]) => {
         // Seed cache with initial songs if provided
         if (initialSongs && initialSongs.length > 0) {
@@ -1079,6 +1121,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 playNext,
                 playPrevious,
                 togglePlay,
+                refreshCurrentQueue,
                 seek,
                 setVolume,
                 activeAudioRef,

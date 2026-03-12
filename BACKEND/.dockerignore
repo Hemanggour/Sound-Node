@@ -5,7 +5,7 @@ __pycache__/
 *.pyd
 
 # Virtual environment
-.venv
+.venv/
 venv/
 env/
 
@@ -47,3 +47,4 @@ README.md
 songs/
 tmp/
 output/
+media/

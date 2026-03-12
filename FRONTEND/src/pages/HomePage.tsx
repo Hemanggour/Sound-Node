@@ -10,7 +10,7 @@ import type { Song } from '../types';
 
 export function HomePage() {
     const { user } = useAuth();
-    const { playPlaylist, removeSong } = usePlayer();
+    const { playPlaylist, removeSong, refreshCurrentQueue } = usePlayer();
     const location = useLocation();
     const [songs, setSongs] = useState<Song[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +38,8 @@ export function HomePage() {
 
     useEffect(() => {
         fetchSongsData(1, true);
+        // Refresh playback queue on mount/library visit
+        refreshCurrentQueue();
     }, [searchQuery]);
 
     useEffect(() => {

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Album, Artist, Song
+from music.models import Album, Artist, SharedSong, Song
 
 # Register your models here.
 
@@ -25,6 +25,19 @@ class SongAdmin(admin.ModelAdmin):
     readonly_fields = ("song_uuid", "size", "mime_type", "uploaded_by")
 
 
+class SharedSongAdmin(admin.ModelAdmin):
+    list_display = (
+        "song__title",
+        "shared_uuid",
+        "shared_by__username",
+        "shared_at",
+        "expire_at",
+    )
+    list_filter = ("shared_by", "shared_at", "expire_at")
+    readonly_fields = ("shared_uuid", "shared_by", "shared_at")
+
+
 admin.site.register(Artist, ArtistAdmin)
 admin.site.register(Album, AlbumAdmin)
 admin.site.register(Song, SongAdmin)
+admin.site.register(SharedSong, SharedSongAdmin)

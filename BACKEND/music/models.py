@@ -20,7 +20,6 @@ class Artist(models.Model):
     class Meta:
         ordering = ["name"]
         indexes = [
-            models.Index(fields=["artist_uuid"]),
             models.Index(fields=["name"]),
             models.Index(fields=["created_by"]),
         ]
@@ -42,7 +41,6 @@ class Album(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["album_uuid"]),
             models.Index(fields=["artist"]),
             models.Index(fields=["title"]),
             models.Index(fields=["created_by"]),
@@ -81,7 +79,6 @@ class Song(models.Model):
     class Meta:
         ordering = ["title"]
         indexes = [
-            models.Index(fields=["song_uuid"]),
             models.Index(fields=["artist"]),
             models.Index(fields=["album"]),
             models.Index(fields=["uploaded_by"]),
@@ -101,7 +98,6 @@ class Playlist(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["playlist_uuid"]),
             models.Index(fields=["owner"]),
         ]
 
@@ -120,7 +116,6 @@ class PlaylistSong(models.Model):
         unique_together = ("playlist", "song")
         ordering = ["order"]
         indexes = [
-            models.Index(fields=["playlist_song_uuid"]),
             models.Index(fields=["playlist", "order"]),
         ]
 

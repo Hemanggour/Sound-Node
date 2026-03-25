@@ -7,6 +7,8 @@ from music.views import (
     PlaylistForSongView,
     PlaylistSongView,
     PlaylistView,
+    SharedSongStreamView,
+    SharedSongsView,
     SongStreamView,
     SongView,
 )
@@ -17,6 +19,9 @@ urlpatterns = [
     path("song/<uuid:song_uuid>/", SongView.as_view()),
     path("song/delete/<uuid:song_uuid>/", SongView.as_view()),
     path("song/stream/<uuid:song_uuid>/", SongStreamView.as_view()),
+    path("song/share/", SharedSongsView.as_view()),
+    path("song/share/<uuid:shared_uuid>/", SharedSongsView.as_view()),
+    path("song/share/stream/<uuid:shared_uuid>/", SharedSongStreamView.as_view()),
     path("playlists/", PlaylistView.as_view()),
     path("playlist/<uuid:playlist_uuid>/", PlaylistView.as_view()),
     path("playlists/song/<uuid:song_uuid>/", PlaylistForSongView.as_view()),

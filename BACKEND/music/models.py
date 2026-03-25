@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 
@@ -72,6 +73,7 @@ class Song(models.Model):
     is_upload_complete = models.BooleanField(default=False)
 
     is_public = models.BooleanField(default=False)
+
     thumbnail = models.ImageField(upload_to="thumbnails/", null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -91,6 +93,8 @@ class Playlist(models.Model):
 
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    is_public = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -118,4 +122,51 @@ class PlaylistSong(models.Model):
         indexes = [
             models.Index(fields=["playlist_song_uuid"]),
             models.Index(fields=["playlist", "order"]),
+        ]
+
+
+class BaseShared(models.Model):
+    shared_uuid = models.UUIDField(default=uuid.uuid4, unique=True)
+
+    shared_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    shared_at = models.DateTimeField(auto_now_add=True)
+    expire_at = models.DateTimeField(null=True, blank=True, editable=True)
+
+    class Meta:
+        abstract = True
+        ordering = ["-shared_at"]
+
+    def isExpired(self):
+        if not self.expire_at:
+            return False
+        return self.expire_at < timezone.now()
+
+
+class SharedSong(BaseShared):
+    song = models.ForeignKey(
+        Song, on_delete=models.CASCADE, related_name="shared_links"
+    )
+
+    class Meta:
+        ordering = ["-shared_at"]
+        indexes = [
+            models.Index(fields=["song"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["song"], name="unique_shared_song")
+        ]
+
+
+class SharedPlaylist(BaseShared):
+    playlist = models.ForeignKey(
+        Playlist, on_delete=models.CASCADE, related_name="shared_links"
+    )
+
+    class Meta:
+        ordering = ["-shared_at"]
+        indexes = [
+            models.Index(fields=["playlist"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["playlist"], name="unique_shared_playlist")
         ]

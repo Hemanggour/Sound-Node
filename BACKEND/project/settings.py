@@ -264,3 +264,11 @@ CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 8192))
 
 # S3 Presigned URL expiration time in seconds
 S3_PRESIGNED_URL_EXPIRATION = int(os.getenv("S3_PRESIGNED_URL_EXPIRATION", 3600))
+
+# Thumbnail settings
+THUMBNAIL_SETTINGS = {
+    "FORMAT": os.getenv("THUMBNAIL_FORMAT", "JPEG"),
+    "QUALITY": int(os.getenv("THUMBNAIL_QUALITY", "95")),
+    "SIZE": tuple(map(int, os.getenv("THUMBNAIL_SIZE", "200,200").split(","))),
+    "OPTIMIZE": os.getenv("THUMBNAIL_OPTIMIZE", "True").lower() == "true",
+}

@@ -27,6 +27,8 @@ interface PlayerContextType {
     toggleRepeat: () => void;
     toggleShuffle: () => Promise<void>;
     removeSong: (songUuid: string) => void;
+    isNowPlayingOpen: boolean;
+    setIsNowPlayingOpen: (open: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -1106,6 +1108,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+
     return (
         <PlayerContext.Provider
             value={{
@@ -1131,6 +1135,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 toggleRepeat,
                 toggleShuffle,
                 removeSong,
+                isNowPlayingOpen,
+                setIsNowPlayingOpen,
             }}
         >
             {children}

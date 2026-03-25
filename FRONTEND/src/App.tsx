@@ -4,6 +4,7 @@ import { PlayerProvider } from './context/PlayerContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { AudioPlayer } from './components/AudioPlayer';
+import { NowPlayingScreen } from './components/NowPlayingScreen';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
@@ -102,6 +103,7 @@ function App() {
             </Routes>
           </main>
           <AudioPlayer />
+          <NowPlayingScreen />
         </div>
       </PlayerProvider>
     </AuthProvider>

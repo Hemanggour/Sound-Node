@@ -39,7 +39,8 @@ export function AudioPlayer() {
     const {
         currentSong, isPlaying, progress, duration, volume,
         togglePlay, seek, setVolume, playNext, playPrevious,
-        repeatMode, isShuffle, toggleRepeat, toggleShuffle
+        repeatMode, isShuffle, toggleRepeat, toggleShuffle,
+        setIsNowPlayingOpen,
     } = usePlayer();
 
     const { isAuthenticated } = useAuth();
@@ -65,7 +66,14 @@ export function AudioPlayer() {
 
     return (
         <div className="audio-player">
-            <div className="player-song-info">
+            <div
+                className="player-song-info player-song-info-clickable"
+                onClick={() => setIsNowPlayingOpen(true)}
+                role="button"
+                tabIndex={0}
+                aria-label="Open Now Playing"
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsNowPlayingOpen(true); }}
+            >
                 <div className="player-cover">
                     {currentSong.thumbnail ? (
                         <img
@@ -89,6 +97,11 @@ export function AudioPlayer() {
                             {formatTime(progress)} / {formatTime(duration)}
                         </div>
                     </div>
+                </div>
+                <div className="mini-player-expand-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M18 15l-6-6-6 6" />
+                    </svg>
                 </div>
             </div>
 

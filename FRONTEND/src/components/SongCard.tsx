@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
@@ -9,12 +9,16 @@ interface SongCardProps {
     viewMode?: 'grid' | 'list';
     onPlay?: () => void;
     onDelete?: () => void;
+    onRemove?: () => void;
+    showNumber?: number;
 }
 
-export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCardProps) {
+export function SongCard({ song, viewMode = 'grid', onPlay, onDelete, onRemove, showNumber }: SongCardProps) {
     const { playSong, currentSong, isPlaying, togglePlay } = usePlayer();
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
 
@@ -42,10 +46,27 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowOptions(false);
+            }
+        };
+
+        if (showOptions) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showOptions]);
+
     if (viewMode === 'list') {
         return (
             <>
                 <div className={`song-list-item ${isCurrentSong ? 'active' : ''}`}>
+                    {showNumber !== undefined && <div className="song-number">{showNumber}</div>}
                     <button className="song-play-btn-small" onClick={handlePlay}>
                         {isCurrentSong && isPlaying ? (
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -63,39 +84,82 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
                         <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
                     </div>
                     <div className="song-duration">{formatDuration(song.duration)}</div>
-                    <div className="song-actions-list">
-                        {onDelete && (
-                            <button
-                                className="song-action-btn-small delete-btn"
-                                onClick={handleDelete}
-                                title="Delete song"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                            </button>
+                    <div className="song-actions-list" ref={dropdownRef}>
+                        <button
+                            className={`song-more-btn ${showOptions ? 'active' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowOptions(!showOptions);
+                            }}
+                            title="More options"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <circle cx="12" cy="12" r="1" fill="currentColor" />
+                                <circle cx="12" cy="5" r="1" fill="currentColor" />
+                                <circle cx="12" cy="19" r="1" fill="currentColor" />
+                            </svg>
+                        </button>
+
+                        {showOptions && (
+                            <div className="song-options-dropdown">
+                                <button
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                        setShowPlaylistModal(true);
+                                        setShowOptions(false);
+                                    }}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    Add to playlist
+                                </button>
+                                <button
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                        setShowShareModal(true);
+                                        setShowOptions(false);
+                                    }}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                        <polyline points="16 6 12 2 8 6" />
+                                        <line x1="12" y1="2" x2="12" y2="15" />
+                                    </svg>
+                                    Share song
+                                </button>
+                                {onRemove && (
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            onRemove();
+                                            setShowOptions(false);
+                                        }}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                        Remove from playlist
+                                    </button>
+                                )}
+                                {onDelete && (
+                                    <button
+                                        className="dropdown-item delete-item"
+                                        onClick={(e) => {
+                                            handleDelete(e);
+                                            setShowOptions(false);
+                                        }}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
+                                        Delete song
+                                    </button>
+                                )}
+                            </div>
                         )}
-                        <button
-                            className="song-action-btn-small"
-                            onClick={() => setShowPlaylistModal(true)}
-                            title="Add to playlist"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                        </button>
-                        <button
-                            className="song-action-btn-small"
-                            onClick={() => setShowShareModal(true)}
-                            title="Share song"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                                <polyline points="16 6 12 2 8 6" />
-                                <line x1="12" y1="2" x2="12" y2="15" />
-                            </svg>
-                        </button>
                     </div>
                 </div>
                 <AddToPlaylistModal

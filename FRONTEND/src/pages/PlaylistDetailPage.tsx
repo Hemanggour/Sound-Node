@@ -4,14 +4,16 @@ import playlistService from '../services/playlistService';
 import { PlaylistModal } from '../components/PlaylistModal';
 import { SearchBar } from '../components/SearchBar';
 import { usePlayer } from '../context/PlayerContext';
+import { SongCard } from '../components/SongCard';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import type { Playlist, PlaylistSong, UpdatePlaylistRequest } from '../types';
+
 
 export function PlaylistDetailPage() {
     const { playlistUuid } = useParams<{ playlistUuid: string }>();
     const navigate = useNavigate();
     const location = useLocation();
-    const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
+    const { currentSong, togglePlay, playPlaylist } = usePlayer();
 
     const [playlist, setPlaylist] = useState<Playlist | null>(location.state?.playlist || null);
     const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
@@ -145,12 +147,6 @@ export function PlaylistDetailPage() {
         }
     };
 
-    const formatDuration = (seconds?: number) => {
-        if (!seconds) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     if (isLoading && !playlist) {
         return (
@@ -303,105 +299,27 @@ export function PlaylistDetailPage() {
                         )}
                     </div>
                 ) : (
-                    <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
+                    <div className={viewMode === 'grid' ? "song-grid" : "song-list-container"}>
                         {filteredPlaylistSongs.map((playlistSong, index) => {
-                            const song = playlistSong.song;
-                            const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
                             const isLastItem = index === filteredPlaylistSongs.length - 1;
 
-                            const itemContent = (
-                                <>
-                                    {viewMode === 'grid' ? (
-                                        <div className={`song-card ${isCurrentSong ? 'active' : ''}`}>
-                                            <div className="song-cover">
-                                                {song.thumbnail ? (
-                                                    <img
-                                                        src={`${song.thumbnail}`}
-                                                        alt={song.title}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                ) : (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                                                    </svg>
-                                                )}
-                                                <button className="song-play-btn" onClick={() => handlePlaySong(playlistSong, index)}>
-                                                    {isCurrentSong && isPlaying ? (
-                                                        <svg viewBox="0 0 24 24" fill="currentColor">
-                                                            <rect x="6" y="4" width="4" height="16" />
-                                                            <rect x="14" y="4" width="4" height="16" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg viewBox="0 0 24 24" fill="currentColor">
-                                                            <polygon points="5,3 19,12 5,21" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                            </div>
-                                            <div className="song-info">
-                                                <h3 className="song-title">{song.title}</h3>
-                                                <p className="song-artist">{song.artist_name || 'Unknown Artist'}</p>
-                                            </div>
-                                            <div className="song-actions">
-                                                <span className="song-duration">{formatDuration(song.duration)}</span>
-                                                <button
-                                                    className="song-action-btn"
-                                                    onClick={() => handleRemoveSong(playlistSong)}
-                                                    title="Remove from playlist"
-                                                    style={{ color: 'var(--error)' }}
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className={`song-list-item ${isCurrentSong ? 'active' : ''}`}
-                                        >
-                                            <div className="song-number">{index + 1}</div>
-                                            <button className="song-play-btn-small" onClick={() => handlePlaySong(playlistSong, index)}>
-                                                {isCurrentSong && isPlaying ? (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <rect x="6" y="4" width="4" height="16" />
-                                                        <rect x="14" y="4" width="4" height="16" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <polygon points="5,3 19,12 5,21" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                            <div className="song-info-list">
-                                                <div className="song-title">{song.title}</div>
-                                                <div className="song-artist">{song.artist_name || 'Unknown Artist'}</div>
-                                            </div>
-                                            <div className="song-duration">{formatDuration(song.duration)}</div>
-                                            <button
-                                                className="song-remove-btn"
-                                                onClick={() => handleRemoveSong(playlistSong)}
-                                                title="Remove from playlist"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
+                            const songCard = (
+                                <SongCard
+                                    key={playlistSong.playlist_song_uuid}
+                                    song={playlistSong.song}
+                                    viewMode={viewMode}
+                                    onPlay={() => handlePlaySong(playlistSong, index)}
+                                    onRemove={() => handleRemoveSong(playlistSong)}
+                                    showNumber={viewMode === 'list' ? index + 1 : undefined}
+                                />
                             );
 
                             return isLastItem ? (
                                 <div key={playlistSong.playlist_song_uuid} ref={lastElementRef}>
-                                    {itemContent}
+                                    {songCard}
                                 </div>
                             ) : (
-                                <div key={playlistSong.playlist_song_uuid}>
-                                    {itemContent}
-                                </div>
+                                songCard
                             );
                         })}
                     </div>

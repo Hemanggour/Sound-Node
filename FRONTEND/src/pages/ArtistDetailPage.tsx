@@ -3,13 +3,14 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import artistService from '../services/artistService';
 import musicService from '../services/musicService';
 import { usePlayer } from '../context/PlayerContext';
+import { SongCard } from '../components/SongCard';
 import { SearchBar } from '../components/SearchBar';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import type { Artist, Song } from '../types';
 
 export function ArtistDetailPage() {
     const { artistUuid } = useParams<{ artistUuid: string }>();
-    const { currentSong, isPlaying, togglePlay, playPlaylist } = usePlayer();
+    const { currentSong, togglePlay, playPlaylist } = usePlayer();
 
     const location = useLocation();
     const [artist, setArtist] = useState<Artist | null>(location.state?.artist || null);
@@ -120,12 +121,6 @@ export function ArtistDetailPage() {
         }
     };
 
-    const formatDuration = (seconds?: number) => {
-        if (!seconds) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     if (isLoading && !artist) {
         return (
@@ -256,82 +251,26 @@ export function ArtistDetailPage() {
                         {searchQuery && <p>Try a different search term</p>}
                     </div>
                 ) : (
-                    <div className={viewMode === 'grid' ? "song-grid" : "song-list"}>
+                    <div className={viewMode === 'grid' ? "song-grid" : "song-list-container"}>
                         {filteredSongs.map((song, index) => {
-                            const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
                             const isLastItem = index === filteredSongs.length - 1;
 
-                            const songContent = (
-                                <>
-                                    {viewMode === 'grid' ? (
-                                        <div className={`song-card ${isCurrentSong ? 'active' : ''}`}>
-                                            <div className="song-cover">
-                                                {song.thumbnail ? (
-                                                    <img
-                                                        src={`${song.thumbnail}`}
-                                                        alt={song.title}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                ) : (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                                                    </svg>
-                                                )}
-                                                <button className="song-play-btn" onClick={() => handlePlaySong(song, index)}>
-                                                    {isCurrentSong && isPlaying ? (
-                                                        <svg viewBox="0 0 24 24" fill="currentColor">
-                                                            <rect x="6" y="4" width="4" height="16" />
-                                                            <rect x="14" y="4" width="4" height="16" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg viewBox="0 0 24 24" fill="currentColor">
-                                                            <polygon points="5,3 19,12 5,21" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                            </div>
-                                            <div className="song-info">
-                                                <h3 className="song-title">{song.title}</h3>
-                                                <p className="song-artist">{artist.name}</p>
-                                            </div>
-                                            <div className="song-actions" style={{ justifyContent: 'flex-end' }}>
-                                                <span className="song-duration">{formatDuration(song.duration)}</span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className={`song-list-item ${isCurrentSong ? 'active' : ''}`}
-                                        >
-                                            <div className="song-number">{index + 1}</div>
-                                            <button className="song-play-btn-small" onClick={() => handlePlaySong(song, index)}>
-                                                {isCurrentSong && isPlaying ? (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <rect x="6" y="4" width="4" height="16" />
-                                                        <rect x="14" y="4" width="4" height="16" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <polygon points="5,3 19,12 5,21" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                            <div className="song-info-list" style={{ flex: 1 }}>
-                                                <div className="song-title">{song.title}</div>
-                                            </div>
-                                            <div className="song-duration">{formatDuration(song.duration)}</div>
-                                        </div>
-                                    )}
-                                </>
+                            const songCard = (
+                                <SongCard
+                                    key={song.song_uuid}
+                                    song={song}
+                                    viewMode={viewMode}
+                                    onPlay={() => handlePlaySong(song, index)}
+                                    showNumber={viewMode === 'list' ? index + 1 : undefined}
+                                />
                             );
 
                             return isLastItem ? (
                                 <div key={song.song_uuid} ref={lastElementRef}>
-                                    {songContent}
+                                    {songCard}
                                 </div>
                             ) : (
-                                <div key={song.song_uuid}>
-                                    {songContent}
-                                </div>
+                                songCard
                             );
                         })}
                     </div>

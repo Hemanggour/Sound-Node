@@ -50,6 +50,20 @@ export const musicService = {
         });
         return response.data.data;
     },
+    async shareSong(songUuid: string, expireAt?: string | null): Promise<any> {
+        const response = await api.post(ENDPOINTS.SHARE_SONG, {
+            song_uuid: songUuid,
+            expire_at: expireAt
+        }, { withCredentials: true });
+        return response.data;
+    },
+    async getSharedSongStream(sharedUuid: string): Promise<any> {
+        const response = await api.get(`${ENDPOINTS.SHARE_STREAM}${sharedUuid}/`);
+        return response.data;
+    },
+    getSharedStreamUrl(sharedUuid: string): string {
+        return `${API_BASE_URL}${ENDPOINTS.SHARE_STREAM}${sharedUuid}/`;
+    },
 };
 
 export default musicService;

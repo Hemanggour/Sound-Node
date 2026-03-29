@@ -12,7 +12,7 @@ interface PlayerContextType {
     volume: number;
     currentPlaylist: string[];
     currentIndex: number;
-    playSong: (song: Song | string) => void;
+    playSong: (song: Song | string, forcedStreamUrl?: string) => void;
     playPlaylist: (context: { artist_uuid?: string; album_uuid?: string; playlist_uuid?: string; q?: string }, startIndex?: number, initialSongs?: Song[]) => void;
     playNext: () => void;
     playPrevious: () => void;
@@ -509,7 +509,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const playSong = async (song: Song | string) => {
+    const playSong = async (song: Song | string, forcedStreamUrl?: string) => {
         const songUuid = typeof song === 'string' ? song : song.song_uuid;
 
         // If we have the full song object, seed the cache
@@ -546,35 +546,51 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             if (!activeAudioRef.current) return;
 
             try {
-                const streamUrl = musicService.getStreamUrl(songUuid);
-                const response = await fetch(streamUrl, {
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    console.error("Failed to fetch audio stream:", response.status);
-                    return;
-                }
-
-                const contentType = response.headers.get('content-type');
-                let audioSrc = streamUrl;
+                let audioSrc = '';
                 let songMetadataFromResponse = null;
 
-                if (contentType?.includes('application/json')) {
-                    const data = await response.json();
-                    audioSrc = data.url;
-                    songMetadataFromResponse = data.song;
+                if (forcedStreamUrl) {
+                    audioSrc = forcedStreamUrl;
+                } else {
+                    const streamUrl = musicService.getStreamUrl(songUuid);
+                    const response = await fetch(streamUrl, {
+                        credentials: 'include',
+                    });
+
+                    if (!response.ok) {
+                        console.error("Failed to fetch audio stream:", response.status);
+                        return;
+                    }
+
+                    const contentType = response.headers.get('content-type');
+                    audioSrc = streamUrl;
+
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
+                        audioSrc = data.url;
+                        songMetadataFromResponse = data.song;
+                    }
                 }
 
                 if (activeAudioRef.current) {
                     activeAudioRef.current.src = audioSrc;
                     activeAudioRef.current.volume = volume;
 
-                    activeAudioRef.current.play().catch(async (error) => {
+                    try {
+                        await activeAudioRef.current.play();
+                        setIsPlaying(true);
+                        if ('mediaSession' in navigator) {
+                            navigator.mediaSession.playbackState = 'playing';
+                        }
+                    } catch (error: any) {
                         if (error.name !== 'AbortError') {
                             console.error("Error playing song:", error.message);
+                            setIsPlaying(false);
+                            if ('mediaSession' in navigator) {
+                                navigator.mediaSession.playbackState = 'paused';
+                            }
                         }
-                    });
+                    }
 
                     // Update current song metadata
                     let songMetadata = songMetadataFromResponse || (typeof song !== 'string' ? song : songMetadataCache[songUuid]);
@@ -594,11 +610,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     if (songMetadata) {
                         setCurrentSong(songMetadata);
                         setupMediaSession(songMetadata);
-                    }
-
-                    setIsPlaying(true);
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.playbackState = 'playing';
                     }
                 }
             } catch (error) {
@@ -658,7 +669,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const togglePlay = () => {
+    const togglePlay = async () => {
         if (activeAudioRef.current) {
             if (isPlaying) {
                 activeAudioRef.current.pause();
@@ -673,19 +684,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                activeAudioRef.current.play().catch(error => {
+                try {
+                    await activeAudioRef.current.play();
+                    setIsPlaying(true);
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                } catch (error: any) {
                     if (error.name !== 'AbortError') {
                         console.error('Error resuming playback:', error);
+                        setIsPlaying(false);
                         // If standard play fails, try a full re-load
                         if (currentSong) {
                             playSong(currentSong);
                         }
                     }
-                });
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = 'playing';
                 }
-                setIsPlaying(true);
             }
         }
     };

@@ -101,6 +101,10 @@ body {
   padding-bottom: var(--player-height);
 }
 
+.main-content.full-screen {
+  padding-top: 0;
+}
+
 /* =========================================
    Typography
    ========================================= */

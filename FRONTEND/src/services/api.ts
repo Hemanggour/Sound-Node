@@ -34,6 +34,7 @@ api.interceptors.response.use(
         const isOnAuthPage =
             window.location.pathname === '/login' ||
             window.location.pathname === '/register';
+        const isSharedPage = window.location.pathname.startsWith('/share/');
 
         if (
             error.response?.status === 401 &&
@@ -41,7 +42,8 @@ api.interceptors.response.use(
             !originalRequest._retry &&
             !isAuthEndpoint &&
             !isRefreshing &&
-            !isOnAuthPage
+            !isOnAuthPage &&
+            !isSharedPage
         ) {
             originalRequest._retry = true;
             isRefreshing = true;

@@ -17,6 +17,8 @@ export const ENDPOINTS = {
   STREAM_SONG: '/song/stream/',
   GET_SONG: '/song/',
   GET_PLAYBACK_QUEUE: '/playback-queue/',
+  SHARE_SONG: '/song/share/',
+  SHARE_STREAM: '/song/share/stream/',
 
   // Playlists
   GET_PLAYLISTS: '/playlists/',

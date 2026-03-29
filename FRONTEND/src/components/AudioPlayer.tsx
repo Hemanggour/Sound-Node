@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
-import { useAuth } from '../context/AuthContext';
 
 function ScrollingText({ text, className }: { text: string; className?: string }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -43,9 +43,11 @@ export function AudioPlayer() {
         setIsNowPlayingOpen,
     } = usePlayer();
 
-    const { isAuthenticated } = useAuth();
 
-    if (!isAuthenticated || !currentSong) return null;
+    const location = useLocation();
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+    if (isAuthPage || !currentSong) return null;
 
     const formatTime = (time: number) => {
         if (isNaN(time)) return '0:00';

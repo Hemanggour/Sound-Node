@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
+import { ShareSongModal } from './ShareSongModal';
 
 interface SongCardProps {
     song: Song;
@@ -13,6 +14,7 @@ interface SongCardProps {
 export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCardProps) {
     const { playSong, currentSong, isPlaying, togglePlay } = usePlayer();
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const isCurrentSong = currentSong?.song_uuid === song.song_uuid;
 
@@ -83,11 +85,27 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
                                 <line x1="5" y1="12" x2="19" y2="12" />
                             </svg>
                         </button>
+                        <button
+                            className="song-action-btn-small"
+                            onClick={() => setShowShareModal(true)}
+                            title="Share song"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                <polyline points="16 6 12 2 8 6" />
+                                <line x1="12" y1="2" x2="12" y2="15" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <AddToPlaylistModal
                     isOpen={showPlaylistModal}
                     onClose={() => setShowPlaylistModal(false)}
+                    song={song}
+                />
+                <ShareSongModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
                     song={song}
                 />
             </>
@@ -150,6 +168,17 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
                                 <line x1="5" y1="12" x2="19" y2="12" />
                             </svg>
                         </button>
+                        <button
+                            className="song-action-btn"
+                            onClick={() => setShowShareModal(true)}
+                            title="Share song"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                <polyline points="16 6 12 2 8 6" />
+                                <line x1="12" y1="2" x2="12" y2="15" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -157,6 +186,12 @@ export function SongCard({ song, viewMode = 'grid', onPlay, onDelete }: SongCard
             <AddToPlaylistModal
                 isOpen={showPlaylistModal}
                 onClose={() => setShowPlaylistModal(false)}
+                song={song}
+            />
+
+            <ShareSongModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
                 song={song}
             />
         </>

@@ -1,3 +1,6 @@
+from django.core.mail import message
+from django.utils.autoreload import raise_last_exception
+from typing import Required
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, Max, OuterRef
@@ -639,12 +642,57 @@ class SharedSongsView(APIView):
     class SharedSongKwargsSerializer(serializers.Serializer):
         shared_uuid = serializers.UUIDField(required=False, allow_null=False)
 
+    class SharedSongQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+
     class SharedSongPostSerializer(serializers.Serializer):
         song_uuid = serializers.UUIDField(required=True, allow_null=False)
         expire_at = serializers.DateTimeField(required=False, allow_null=True)
 
     class SharedSongPatchSerializer(serializers.Serializer):
         expire_at = serializers.DateTimeField(required=False, allow_null=True)
+    
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.SharedSongKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+
+        if shared_uuid is not None:
+            try:
+                shared_song_obj = get_object_or_404(
+                    SharedSong,
+                    shared_uuid=shared_uuid,
+                    shared_by=self.request.user,
+                )
+                return formatted_response(
+                    data=SharedSongModelSerializer(shared_song_obj).data,
+                    status=status.HTTP_200_OK,
+                )
+            except SharedSong.DoesNotExist:
+                return formatted_response(
+                    message="Shared song not found",
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        query_serializer = self.SharedSongQuerySerializer(data=self.request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
+        search_query = query_serializer.validated_data.get("q")
+
+        shared_song_objs = SharedSong.objects.filter(shared_by=self.request.user)
+
+        if search_query:
+            shared_song_objs = shared_song_objs.filter(song__title__icontains=search_query)
+
+        return paginated_response(
+            queryset=shared_song_objs,
+            request=self.request,
+            serializer_class=SharedSongModelSerializer,
+            context={"request": self.request},
+        )
+
 
     def post(self, *args, **kwargs):
         post_serializer = self.SharedSongPostSerializer(data=self.request.data)

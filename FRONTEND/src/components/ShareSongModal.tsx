@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import type { Song } from '../types';
 import musicService from '../services/musicService';
 
@@ -16,12 +17,14 @@ export function ShareSongModal({ isOpen, onClose, song }: ShareSongModalProps) {
     const [sharedUrl, setSharedUrl] = useState('');
     const [isSharing, setIsSharing] = useState(false);
     const [error, setError] = useState('');
+    const [isAlreadyShared, setIsAlreadyShared] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
             setSharedUrl('');
             setError('');
+            setIsAlreadyShared(false);
             setCopySuccess(false);
             setExpiryOption('never');
         }
@@ -68,7 +71,12 @@ export function ShareSongModal({ isOpen, onClose, song }: ShareSongModalProps) {
             const host = window.location.origin;
             setSharedUrl(`${host}/share/${sharedUuid}`);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to share song');
+            const message = err.response?.data?.message || 'Failed to share song';
+            if (message === 'Song is already in the shared list') {
+                setIsAlreadyShared(true);
+            } else {
+                setError(message);
+            }
         } finally {
             setIsSharing(false);
         }
@@ -129,6 +137,21 @@ export function ShareSongModal({ isOpen, onClose, song }: ShareSongModalProps) {
                             )}
 
                             {error && <div className="error-message">{error}</div>}
+
+                            {isAlreadyShared && (
+                                <div className="info-message">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="16" x2="12" y2="12" />
+                                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                                    </svg>
+                                    <p>
+                                        This song is already shared. 
+                                        <Link to="/shared-songs" onClick={onClose} className="link-text">Check your shared page</Link> 
+                                        to copy the link or manage it.
+                                    </p>
+                                </div>
+                            )}
 
                             <button
                                 className="btn btn-primary btn-full"
@@ -215,6 +238,29 @@ export function ShareSongModal({ isOpen, onClose, song }: ShareSongModalProps) {
                 .success-icon svg {
                     width: 24px;
                     height: 24px;
+                }
+                .info-message {
+                    display: flex;
+                    gap: 12px;
+                    background: rgba(139, 92, 246, 0.1);
+                    border: 1px solid rgba(139, 92, 246, 0.2);
+                    padding: 16px;
+                    border-radius: var(--radius-md);
+                    margin-bottom: 20px;
+                    color: var(--text-secondary);
+                    font-size: 0.875rem;
+                }
+                .info-message svg {
+                    width: 20px;
+                    height: 20px;
+                    flex-shrink: 0;
+                    color: var(--accent-primary);
+                }
+                .link-text {
+                    color: var(--accent-primary);
+                    text-decoration: underline;
+                    margin-left: 4px;
+                    font-weight: 600;
                 }
                 .generated-link-box {
                     display: flex;

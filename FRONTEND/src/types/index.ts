@@ -139,3 +139,12 @@ export interface PlayerState {
     currentPlaylist?: Song[];
     currentIndex?: number;
 }
+
+// Shared Song types
+export interface SharedSong {
+    shared_uuid: string;
+    song: Song;
+    shared_by: string;
+    shared_at: string;
+    expire_at: string | null;
+}

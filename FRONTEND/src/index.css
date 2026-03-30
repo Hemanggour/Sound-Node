@@ -3154,6 +3154,10 @@ a:hover {
 .modal-header h2 {
   font-size: 1.25rem;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 12px;
 }
 
 .modal-close {

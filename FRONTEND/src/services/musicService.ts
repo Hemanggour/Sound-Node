@@ -1,6 +1,6 @@
 import api from './api';
 import { API_BASE_URL, ENDPOINTS } from '../config/api';
-import type { ApiResponse, UploadSongResponse, Song, PaginatedResponse } from '../types';
+import type { ApiResponse, UploadSongResponse, Song, PaginatedResponse, SharedSong } from '../types';
 
 export const musicService = {
     async getSongs(params?: { q?: string; artist_uuid?: string; album_uuid?: string; page?: number }): Promise<PaginatedResponse<Song>> {
@@ -50,11 +50,30 @@ export const musicService = {
         });
         return response.data.data;
     },
+    async getSharedSongs(params?: { q?: string; page?: number }): Promise<PaginatedResponse<SharedSong>> {
+        const response = await api.get<PaginatedResponse<SharedSong>>(ENDPOINTS.SHARE_SONG, {
+            params,
+            withCredentials: true
+        });
+        return response.data;
+    },
     async shareSong(songUuid: string, expireAt?: string | null): Promise<any> {
         const response = await api.post(ENDPOINTS.SHARE_SONG, {
             song_uuid: songUuid,
             expire_at: expireAt
         }, { withCredentials: true });
+        return response.data;
+    },
+    async updateSharedSong(sharedUuid: string, expireAt: string | null): Promise<any> {
+        const response = await api.patch(`${ENDPOINTS.SHARE_SONG}${sharedUuid}/`, {
+            expire_at: expireAt
+        }, { withCredentials: true });
+        return response.data;
+    },
+    async deleteSharedSong(sharedUuid: string): Promise<any> {
+        const response = await api.delete(`${ENDPOINTS.SHARE_SONG}${sharedUuid}/`, {
+            withCredentials: true
+        });
         return response.data;
     },
     async getSharedSongStream(sharedUuid: string): Promise<any> {

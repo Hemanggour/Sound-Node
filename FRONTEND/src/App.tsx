@@ -17,6 +17,7 @@ import { ArtistDetailPage } from './pages/ArtistDetailPage';
 import { AlbumsPage } from './pages/AlbumsPage';
 import { AlbumDetailPage } from './pages/AlbumDetailPage';
 import { SharedSongPage } from './pages/SharedSongPage';
+import { MySharedSongsPage } from './pages/MySharedSongsPage';
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -97,6 +98,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AlbumDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shared-songs"
+            element={
+              <ProtectedRoute>
+                <MySharedSongsPage />
               </ProtectedRoute>
             }
           />

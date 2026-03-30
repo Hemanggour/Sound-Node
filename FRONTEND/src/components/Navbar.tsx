@@ -67,6 +67,14 @@ export function Navbar() {
                     </svg>
                     Albums
                 </Link>
+                <Link to="/shared-songs" className={`nav-link ${isActive('/shared-songs')}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                    Shared
+                </Link>
                 <Link to="/upload" className={`nav-link ${isActive('/upload')}`}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -149,6 +157,14 @@ export function Navbar() {
                         <circle cx="12" cy="12" r="3" />
                     </svg>
                     Albums
+                </Link>
+                <Link to="/shared-songs" className={`mobile-nav-link ${isActive('/shared-songs')}`} onClick={handleLinkClick}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                    Shared
                 </Link>
                 <Link to="/upload" className={`mobile-nav-link ${isActive('/upload')}`} onClick={handleLinkClick}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -44,8 +44,23 @@ It is designed to explore real-world backend challenges in audio delivery and st
 
 * Albums & Artists with structured tracklists
 * Playlist creation and management
-* Search optimization for GET endpoints
-* Media thumbnails and cover images
+* **Infinite Scrolling** for seamless navigation across large libraries
+* **Advanced Search** within playlists, artists, and albums
+* **Multiple File Uploads** support
+* Media thumbnails and cover images with configurable compression
+
+### 🔗 Song Sharing & Public Access
+
+* **Public Sharing Links**: Generate unique URLs for individual tracks
+* **No Account Required**: Shared songs can be accessed and played by anyone without Sound-Node account. (No Login or Signup)
+* **Expiration Support**: Set optional expiration times for sharing links
+* **Guest Player Page**: Dedicated landing page for shared track playback
+
+### 🛠 Shared Library Management
+
+* **Link Management**: Centralized dashboard to view, update, and delete active sharing links
+* **Duplicate Prevention**: Notifies users if a song is already shared, redirecting to existing management link
+* **Real-time Status**: Monitor sharing activity and link validity
 
 ### 🔐 Secure & Production-Oriented
 
@@ -90,6 +105,7 @@ Achieved **0ms - 10ms latency** between songs through a dual-player architecture
 *   **Native Looping**: "Repeat One" mode reuses the active player's buffer for instant replay.
 *   **Smart Metadata Caching**: Frontend maintains a local cache of song metadata to prevent API roundtrips during navigation and queue management.
 *   **Abort Signal Handling**: In-flight fetch requests are aborted when the song changes, freeing up connection slots and reducing bandwidth waste.
+*   **Now Playing View**: Dedicated full-screen experience with rich track metadata and controls.
 
 ---
 
@@ -136,7 +152,7 @@ Sound-Node follows a **reverse-proxy–based, storage-agnostic architecture** de
   Media storage can switch between Local FS and S3-compatible storage via environment configuration without changing business logic.
 
 * **Backend-Controlled Authorization**
-  Clients never access storage directly without backend-issued authorization.
+  Clients never access storage directly without backend-issued authorization. Public sharing links use a specialized bypass mechanism to allow secure, guest-only access to specific media objects.
 
 * **Efficient Media Delivery**
   Large media files are not streamed through the backend, reducing server bandwidth load.

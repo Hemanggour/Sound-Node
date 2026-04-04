@@ -1,6 +1,3 @@
-from django.core.mail import message
-from django.utils.autoreload import raise_last_exception
-from typing import Required
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, Max, OuterRef
@@ -651,7 +648,6 @@ class SharedSongsView(APIView):
 
     class SharedSongPatchSerializer(serializers.Serializer):
         expire_at = serializers.DateTimeField(required=False, allow_null=True)
-    
 
     def get(self, *args, **kwargs):
         kwargs_serializer = self.SharedSongKwargsSerializer(data=self.kwargs)
@@ -676,7 +672,9 @@ class SharedSongsView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-        query_serializer = self.SharedSongQuerySerializer(data=self.request.query_params)
+        query_serializer = self.SharedSongQuerySerializer(
+            data=self.request.query_params
+        )
         query_serializer.is_valid(raise_exception=True)
 
         search_query = query_serializer.validated_data.get("q")
@@ -684,7 +682,9 @@ class SharedSongsView(APIView):
         shared_song_objs = SharedSong.objects.filter(shared_by=self.request.user)
 
         if search_query:
-            shared_song_objs = shared_song_objs.filter(song__title__icontains=search_query)
+            shared_song_objs = shared_song_objs.filter(
+                song__title__icontains=search_query
+            )
 
         return paginated_response(
             queryset=shared_song_objs,
@@ -692,7 +692,6 @@ class SharedSongsView(APIView):
             serializer_class=SharedSongModelSerializer,
             context={"request": self.request},
         )
-
 
     def post(self, *args, **kwargs):
         post_serializer = self.SharedSongPostSerializer(data=self.request.data)

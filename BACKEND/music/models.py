@@ -81,7 +81,7 @@ class Song(models.Model):
         indexes = [
             models.Index(fields=["artist"]),
             models.Index(fields=["album"]),
-            models.Index(fields=["uploaded_by"]),
+            models.Index(fields=["uploaded_by", "is_uploaded_to_cloud", "is_upload_complete"]),
         ]
 
 
@@ -117,6 +117,7 @@ class PlaylistSong(models.Model):
         ordering = ["order"]
         indexes = [
             models.Index(fields=["playlist", "order"]),
+            models.Index(fields=["song"]),
         ]
 
 
@@ -145,7 +146,7 @@ class SharedSong(BaseShared):
     class Meta:
         ordering = ["-shared_at"]
         indexes = [
-            models.Index(fields=["song"]),
+            models.Index(fields=["song", "shared_by"]),
         ]
         constraints = [
             models.UniqueConstraint(fields=["song"], name="unique_shared_song")
@@ -160,7 +161,7 @@ class SharedPlaylist(BaseShared):
     class Meta:
         ordering = ["-shared_at"]
         indexes = [
-            models.Index(fields=["playlist"]),
+            models.Index(fields=["playlist", "shared_by"]),
         ]
         constraints = [
             models.UniqueConstraint(fields=["playlist"], name="unique_shared_playlist")

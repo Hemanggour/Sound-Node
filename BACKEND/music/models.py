@@ -81,7 +81,9 @@ class Song(models.Model):
         indexes = [
             models.Index(fields=["artist"]),
             models.Index(fields=["album"]),
-            models.Index(fields=["uploaded_by", "is_uploaded_to_cloud", "is_upload_complete"]),
+            models.Index(
+                fields=["uploaded_by", "is_uploaded_to_cloud", "is_upload_complete"]
+            ),
         ]
 
 

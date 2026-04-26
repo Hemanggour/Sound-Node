@@ -8,13 +8,22 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from account.jwt_utils import CookieJWTAuthentication
-from music.models import Album, Artist, Playlist, PlaylistSong, SharedSong, Song
+from music.models import (
+    Album,
+    Artist,
+    Playlist,
+    PlaylistSong,
+    SharedPlaylist,
+    SharedSong,
+    Song,
+)
 from music.serializers import (
     AlbumModelSerializer,
     ArtistModelSerializer,
     PlaylistForSongSerializer,
     PlaylistModelSerializer,
     PlaylistSongModelSerializer,
+    SharedPlaylistModelSerializer,
     SharedSongModelSerializer,
     SongModelSerializer,
 )
@@ -855,5 +864,297 @@ class SharedSongStreamView(APIView):
                     "url": direct_url,
                     "type": song_obj.mime_type,
                     "shared_song": shared_song_data,
+                }
+            )
+
+
+class SharedPlaylistView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
+
+    class SharedPlaylistKwargsSerializer(serializers.Serializer):
+        shared_uuid = serializers.UUIDField(required=False, allow_null=True)
+
+    class SharedPlaylistPostSerializer(serializers.Serializer):
+        playlist_uuid = serializers.UUIDField(required=True, allow_null=False)
+        expire_at = serializers.DateTimeField(required=False, allow_null=True)
+
+    class SharedPlaylistPatchSerializer(serializers.Serializer):
+        expire_at = serializers.DateTimeField(required=False, allow_null=True)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.SharedPlaylistKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+
+        if shared_uuid is not None:
+            shared_playlist_obj = get_object_or_404(
+                SharedPlaylist, shared_uuid=shared_uuid, shared_by=self.request.user
+            )
+
+            return formatted_response(
+                data=SharedPlaylistModelSerializer(shared_playlist_obj).data,
+                status=status.HTTP_200_OK,
+            )
+
+        shared_playlist_objs = SharedPlaylist.objects.filter(
+            shared_by=self.request.user
+        )
+
+        return paginated_response(
+            queryset=shared_playlist_objs,
+            request=self.request,
+            serializer_class=SharedPlaylistModelSerializer,
+            context={"request": self.request},
+        )
+
+    def post(self, *args, **kwargs):
+        post_serializer = self.SharedPlaylistPostSerializer(data=self.request.data)
+        post_serializer.is_valid(raise_exception=True)
+
+        playlist_uuid = post_serializer.validated_data.get("playlist_uuid")
+        expire_at = post_serializer.validated_data.get("expire_at")
+
+        playlist_obj = get_object_or_404(
+            Playlist, playlist_uuid=playlist_uuid, owner=self.request.user
+        )
+
+        try:
+            SharedPlaylist.objects.get(
+                playlist=playlist_obj, shared_by=self.request.user
+            )
+            return formatted_response(
+                message="Playlist already shared",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except SharedPlaylist.DoesNotExist:
+            pass
+
+        data = {
+            "playlist": playlist_obj,
+            "shared_by": self.request.user,
+            "expire_at": expire_at,
+        }
+
+        shared_obj = SharedPlaylist.objects.create(**data)
+
+        return formatted_response(
+            data=SharedPlaylistModelSerializer(shared_obj).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def patch(self, *args, **kwargs):
+        kwargs_serializer = self.SharedPlaylistKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+
+        if shared_uuid is None:
+            return formatted_response(
+                message="shared_uuid is required for this operation.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        shared_playlist_obj = get_object_or_404(
+            SharedPlaylist, shared_uuid=shared_uuid, shared_by=self.request.user
+        )
+
+        patch_serializer = self.SharedPlaylistPatchSerializer(data=self.request.data)
+        patch_serializer.is_valid(raise_exception=True)
+
+        expire_at = patch_serializer.validated_data.get("expire_at")
+
+        shared_playlist_obj.expire_at = expire_at
+
+        shared_playlist_obj.save()
+
+        return formatted_response(
+            data=SharedSongModelSerializer(shared_playlist_obj).data,
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, *args, **kwargs):
+        kwargs_serializer = self.SharedPlaylistKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+
+        if shared_uuid is None:
+            return formatted_response(
+                message="shared_uuid is required for this operation.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        shared_playlist_obj = get_object_or_404(
+            SharedPlaylist, shared_uuid=shared_uuid, shared_by=self.request.user
+        )
+
+        shared_playlist_obj.delete()
+
+        return formatted_response(
+            message="Shared Playlist deleted successfully",
+            status=status.HTTP_200_OK,
+        )
+
+
+class PublicSharedPlaylistView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    class SharedPlaylistKwargsSerializer(serializers.Serializer):
+        shared_uuid = serializers.UUIDField(required=True, allow_null=False)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.SharedPlaylistKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+
+        shared_playlist_obj = get_object_or_404(SharedPlaylist, shared_uuid=shared_uuid)
+
+        if shared_playlist_obj.isExpired():
+            return formatted_response(
+                message="Shared Playlist url is invalid or expired",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return formatted_response(
+            data=SharedPlaylistModelSerializer(shared_playlist_obj).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class PublicSharedPlaylistSongView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    class SharedPlaylistSongKwargsSerializer(serializers.Serializer):
+        shared_uuid = serializers.UUIDField(required=True, allow_null=False)
+        playlist_song_uuid = serializers.UUIDField(required=False, allow_null=False)
+
+    class SharedPlaylistSongQuerySerializer(serializers.Serializer):
+        q = serializers.CharField(required=False, allow_blank=False)
+
+    def get(self, *args, **kwargs):
+        kwargs_serializer = self.SharedPlaylistSongKwargsSerializer(data=self.kwargs)
+        kwargs_serializer.is_valid(raise_exception=True)
+
+        query_serializer = self.SharedPlaylistSongQuerySerializer(
+            data=self.request.query_params
+        )
+        query_serializer.is_valid(raise_exception=True)
+
+        shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
+        playlist_song_uuid = kwargs_serializer.validated_data.get("playlist_song_uuid")
+        search_query = query_serializer.validated_data.get("q")
+
+        shared_playlist_obj = get_object_or_404(
+            SharedPlaylist,
+            shared_uuid=shared_uuid,
+        )
+
+        if shared_playlist_obj.isExpired():
+            return formatted_response(
+                message="Shared Playlist url is invalid or expired",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if playlist_song_uuid is not None:
+            playlist_song_obj = get_object_or_404(
+                PlaylistSong, playlist_song_uuid=playlist_song_uuid
+            )
+            return formatted_response(
+                data=PlaylistSongModelSerializer(playlist_song_obj).data,
+                status=status.HTTP_200_OK,
+            )
+
+        playlistsong_objs = PlaylistSong.objects.filter(
+            playlist=shared_playlist_obj.playlist
+        )
+
+        if search_query:
+            playlistsong_objs = playlistsong_objs.filter(
+                song__title__icontains=search_query
+            )
+
+        playlistsong_objs = playlistsong_objs.order_by("added_at")
+
+        return paginated_response(
+            queryset=playlistsong_objs,
+            request=self.request,
+            serializer_class=PlaylistSongModelSerializer,
+            context={"request": self.request},
+        )
+
+
+class SharedPlaylistSongStreamView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    class SharedPlaylistSongStreamQuerySerializer(serializers.Serializer):
+        direct = serializers.BooleanField(required=False, allow_null=True)
+
+    class SharedPlaylistSongStreamKwargsSerializer(serializers.Serializer):
+        shared_uuid = serializers.UUIDField(required=True, allow_null=False)
+        playlist_song_uuid = serializers.UUIDField(required=True, allow_null=False)
+
+    def get(self, *args, **kwargs):
+        query_serializer = self.SharedPlaylistSongStreamQuerySerializer(
+            data=self.request.query_params
+        )
+        query_serializer.is_valid(raise_exception=True)
+        direct = query_serializer.validated_data.get("direct")
+
+        serializer = self.SharedPlaylistSongStreamKwargsSerializer(data=self.kwargs)
+        serializer.is_valid(raise_exception=True)
+
+        shared_uuid = serializer.validated_data.get("shared_uuid")
+        playlist_song_uuid = serializer.validated_data.get("playlist_song_uuid")
+
+        shared_playlist = get_object_or_404(SharedPlaylist, shared_uuid=shared_uuid)
+
+        if shared_playlist.isExpired():
+            return formatted_response(
+                message="Shared url has been expired",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        playlist_song_obj = get_object_or_404(PlaylistSong, playlist_song_uuid=playlist_song_uuid)
+
+        song_obj = playlist_song_obj.song
+
+        # If 'direct' is present, stream the file content directly
+        if direct:
+            return stream_file(
+                request=self.request,
+                file_path=song_obj.file.name,
+                content_type=song_obj.mime_type,
+            )
+
+        # Default to JSON response with metadata to reduce frontend API calls
+        shared_playlist_song_data = PlaylistSongModelSerializer(
+            playlist_song_obj, context={"request": self.request}
+        ).data
+
+        if settings.STORAGE_BACKEND == "s3":
+            from music.services.s3_service import generate_presigned_url
+
+            presigned_url = generate_presigned_url(song_obj.file.name)
+            return JsonResponse(
+                {
+                    "url": presigned_url,
+                    "type": song_obj.mime_type,
+                    "shared_playlist_song": shared_playlist_song_data,
+                }
+            )
+        else:
+            # For local storage, provide the direct stream URL
+            direct_url = self.request.build_absolute_uri() + "?direct=1"
+            return JsonResponse(
+                {
+                    "url": direct_url,
+                    "type": song_obj.mime_type,
+                    "shared_playlist_song": shared_playlist_song_data,
                 }
             )

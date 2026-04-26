@@ -1,7 +1,15 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from music.models import Album, Artist, Playlist, PlaylistSong, SharedSong, Song
+from music.models import (
+    Album,
+    Artist,
+    Playlist,
+    PlaylistSong,
+    SharedPlaylist,
+    SharedSong,
+    Song,
+)
 
 
 class SongModelSerializer(serializers.ModelSerializer):
@@ -225,6 +233,21 @@ class SharedSongModelSerializer(serializers.ModelSerializer):
         fields = [
             "shared_uuid",
             "song",
+            "shared_by",
+            "shared_at",
+            "expire_at",
+        ]
+        read_only_fields = ["shared_uuid", "shared_by", "shared_at", "expire_at"]
+
+
+class SharedPlaylistModelSerializer(serializers.ModelSerializer):
+    playlist = PlaylistModelSerializer(read_only=True)
+
+    class Meta:
+        model = SharedPlaylist
+        fields = [
+            "shared_uuid",
+            "playlist",
             "shared_by",
             "shared_at",
             "expire_at",

@@ -1120,7 +1120,9 @@ class SharedPlaylistSongStreamView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        playlist_song_obj = get_object_or_404(PlaylistSong, playlist_song_uuid=playlist_song_uuid)
+        playlist_song_obj = get_object_or_404(
+            PlaylistSong, playlist_song_uuid=playlist_song_uuid
+        )
 
         song_obj = playlist_song_obj.song
 
@@ -1169,24 +1171,26 @@ class SharedPlaybackQueueView(APIView):
 
     class QuerySerializer(serializers.Serializer):
         shuffle = serializers.BooleanField(required=False, default=False)
-        start_playlist_song_uuid = serializers.UUIDField(required=False, allow_null=False)
+        start_playlist_song_uuid = serializers.UUIDField(
+            required=False, allow_null=False
+        )
 
     def get(self, *args, **kwargs):
         kwargs_serializer = self.KwargsSerializer(data=self.kwargs)
         kwargs_serializer.is_valid(raise_exception=True)
-    
+
         shared_uuid = kwargs_serializer.validated_data.get("shared_uuid")
 
         query_serializer = self.QuerySerializer(data=self.request.query_params)
         query_serializer.is_valid(raise_exception=True)
 
         shuffle = query_serializer.validated_data.get("shuffle")
-        start_playlist_song_uuid = query_serializer.validated_data.get("start_playlist_song_uuid")
-
-        shared_playlist = get_object_or_404(
-            SharedPlaylist, shared_uuid=shared_uuid
+        start_playlist_song_uuid = query_serializer.validated_data.get(
+            "start_playlist_song_uuid"
         )
-        
+
+        shared_playlist = get_object_or_404(SharedPlaylist, shared_uuid=shared_uuid)
+
         playlist_song_objs = PlaylistSong.objects.filter(
             playlist=shared_playlist.playlist
         )
@@ -1194,18 +1198,26 @@ class SharedPlaybackQueueView(APIView):
         if shuffle:
             if start_playlist_song_uuid:
                 # Get the specific song first
-                first_song = playlist_song_objs.filter(playlist_song_uuid=start_playlist_song_uuid)
+                first_song = playlist_song_objs.filter(
+                    playlist_song_uuid=start_playlist_song_uuid
+                )
                 # Get other songs shuffled
-                other_songs = playlist_song_objs.exclude(playlist_song_uuid=start_playlist_song_uuid).order_by("?")
+                other_songs = playlist_song_objs.exclude(
+                    playlist_song_uuid=start_playlist_song_uuid
+                ).order_by("?")
 
                 queue_uuids = list(
                     first_song.values_list("playlist_song_uuid", flat=True)
                 ) + list(other_songs.values_list("playlist_song_uuid", flat=True))
             else:
                 playlist_song_objs = playlist_song_objs.order_by("?")
-                queue_uuids = list(playlist_song_objs.values_list("playlist_song_uuid", flat=True))
+                queue_uuids = list(
+                    playlist_song_objs.values_list("playlist_song_uuid", flat=True)
+                )
         else:
-            queue_uuids = list(playlist_song_objs.values_list("playlist_song_uuid", flat=True))
+            queue_uuids = list(
+                playlist_song_objs.values_list("playlist_song_uuid", flat=True)
+            )
 
         return formatted_response(
             data={"queue": queue_uuids},

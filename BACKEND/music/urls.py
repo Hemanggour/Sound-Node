@@ -9,11 +9,11 @@ from music.views import (
     PlaylistView,
     PublicSharedPlaylistSongView,
     PublicSharedPlaylistView,
+    SharedPlaybackQueueView,
     SharedPlaylistSongStreamView,
     SharedPlaylistView,
     SharedSongStreamView,
     SharedSongsView,
-    SharedPlaybackQueueView,
     SongStreamView,
     SongView,
 )
@@ -49,7 +49,7 @@ urlpatterns = [
         PublicSharedPlaylistSongView.as_view(),
     ),
     path(
-        "playlist/share/public/<uuid:shared_uuid>/song/<uuid:playlist_song_uuid>/",     # Currently not in use
+        "playlist/share/public/<uuid:shared_uuid>/song/<uuid:playlist_song_uuid>/",  # Currently not in use     # noqa
         PublicSharedPlaylistSongView.as_view(),
     ),
     path(
@@ -65,5 +65,8 @@ urlpatterns = [
     # Playback queue
     path("playback-queue/", PlaybackQueueView.as_view()),
     # Shared Playlist Playback queue
-    path("share/public/playback-queue/<uuid:shared_uuid>/", SharedPlaybackQueueView.as_view()),
+    path(
+        "share/public/playback-queue/<uuid:shared_uuid>/",
+        SharedPlaybackQueueView.as_view(),
+    ),
 ]

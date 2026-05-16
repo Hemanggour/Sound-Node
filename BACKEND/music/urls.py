@@ -13,6 +13,7 @@ from music.views import (
     SharedPlaylistView,
     SharedSongStreamView,
     SharedSongsView,
+    SharedPlaybackQueueView,
     SongStreamView,
     SongView,
 )
@@ -63,4 +64,6 @@ urlpatterns = [
     path("album/<uuid:album_uuid>/", AlbumView.as_view()),
     # Playback queue
     path("playback-queue/", PlaybackQueueView.as_view()),
+    # Shared Playlist Playback queue
+    path("share/public/playback-queue/<uuid:shared_uuid>/", SharedPlaybackQueueView.as_view()),
 ]
